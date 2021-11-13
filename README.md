@@ -1,0 +1,2 @@
+# HomeAssistant-EGDdistribuce
+HDO
