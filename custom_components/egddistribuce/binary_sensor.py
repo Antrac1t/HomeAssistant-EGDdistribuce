@@ -70,11 +70,11 @@ class EgdDistribuce(BinarySensorEntity):
     def is_on(self):
         return downloader.isHdo(self.codeA,self.codeB,self.codeDP)
 
-   @property
-   def device_state_attributes(self):
-       attributes = {}
-       attributes['response_json'] = self.responseHDOJson
-       return attributes
+    @property
+    def device_state_attributes(self):
+        attributes = {}
+        attributes['response_json'] = self.responseHDOJson
+        return attributes
 
     @property
     def should_poll(self):
