@@ -1,11 +1,9 @@
 __version__ = "0.1"
 
 import logging
-import json
-from urllib.request import urlopen
 from . import downloader
 import voluptuous as vol
-import datetime
+from datetime import timedelta, datetime, date
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 import homeassistant.helpers.config_validation as cv
 from homeassistant.components.binary_sensor import BinarySensorEntity
