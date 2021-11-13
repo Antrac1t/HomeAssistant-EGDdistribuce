@@ -1,0 +1,9 @@
+{
+    "domain": "egddistribuce",
+    "name": "EGD Distribuce",
+    "version": "0.1",
+    "documentation": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce",
+    "issue_tracker": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce/issues",
+    "dependencies": [],
+    "codeowners": ["@Antrac1t"]
+}
