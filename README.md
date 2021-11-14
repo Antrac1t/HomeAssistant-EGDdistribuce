@@ -31,9 +31,9 @@ binary_sensor:
   - platform: egddistribuce
     name: HDO
     psc: 67168
-    code_a: 1
-    code_b: 8
-    code_dp: 05
+    code_a: "1"
+    code_b: "8"
+    code_dp: "05"
     
 ```
 
