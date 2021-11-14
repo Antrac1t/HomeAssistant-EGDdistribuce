@@ -12,7 +12,7 @@ from homeassistant.util import Throttle
 import requests
 from lxml import html, etree
 
-MIN_TIME_BETWEEN_SCANS = timedelta(seconds=10)
+MIN_TIME_BETWEEN_SCANS = timedelta(seconds=300)
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "egddistribuce"
