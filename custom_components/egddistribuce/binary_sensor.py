@@ -12,7 +12,7 @@ from homeassistant.util import Throttle
 import requests
 from lxml import html, etree
 
-MIN_TIME_BETWEEN_SCANS = timedelta(seconds=300)
+MIN_TIME_BETWEEN_SCANS = timedelta(seconds=10)
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "egddistribuce"
@@ -53,8 +53,9 @@ class EgdDistribuce(BinarySensorEntity):
         self.codeDP = codeDP
         self.responseRegionJson = "[]"
         self.responseHDOJson ="[]"
-        self.Region = ""
+        self.region ="[]"
         self.update()
+
 
     @property
     def name(self):
@@ -66,14 +67,14 @@ class EgdDistribuce(BinarySensorEntity):
 
     @property
     def is_on(self):
-        return downloader.isHdo(self.codeA,self.codeB,self.codeDP)
+        return downloader.parseHDO(self.responseHDOJson,self.region,self.codeA,self.codeB,self.codeDP)
 
     @property
     def device_state_attributes(self):
         attributes = {}
-        attributes['response_json'] = self.responseHDOJson
+        attributes['response_json'] = downloader.parseHDO(self.responseHDOJson,self.region,self.codeA,self.codeB,self.codeDP)
         return attributes
-
+        
     @property
     def should_poll(self):
         return True
@@ -88,21 +89,14 @@ class EgdDistribuce(BinarySensorEntity):
 
     @Throttle(MIN_TIME_BETWEEN_SCANS)
     def update(self):
-        # PSC = "67168"
-        # CODE_A = "1"
-        # CODE_B = "8"
-        # CODE_DP = "05"
-
         responseRegion = requests.get(downloader.getRegion())
         if responseRegion.status_code == 200:
-            self.responseRegionJson = responseRegion.json()
-            self.Region=parseRegion(self.responseRegionJson,self.psc)
+            self.responseRegionJson = responseRegion.json() 
+            self.region=downloader.parseRegion(self.responseRegionJson,self.psc)
             responseHDO = requests.get(downloader.getHDO())
             if responseHDO.status_code == 200:
-                self.last_update_success = True
                 self.responseHDOJson = responseHDO.json()
-            #regionHDO=parseHDO(responseHDOJson,regionResult,"1","8","05")
-
+                self.last_update_success = True
         else:
             self.last_update_success = False
-
+        
