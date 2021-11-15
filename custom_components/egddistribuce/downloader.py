@@ -26,8 +26,8 @@ def parseRegion(jsonRegion,psc):
 def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
     output_hdo_dict = [x for x in jsonHDO if x['A'] == HDO_A and x['B'] == HDO_B and x['DP'] == HDO_DP and x['region'] == HDORegion]
     dateNow = datetime.datetime.now()
-    for itemData in output_hdo_dict: 
-        HDOStatus=False
+    HDOStatus=False
+    for itemData in output_hdo_dict:
         str_date_time_od = itemData['od']['rok'] + "-" + itemData['od']['mesic'] + "-" + itemData['od']['den']
         str_date_time_do = itemData['do']['rok'] + "-" + itemData['do']['mesic'] + "-" + itemData['do']['den']
         date_time_od_obj = datetime.datetime.strptime(str_date_time_od, '%Y-%m-%d')
