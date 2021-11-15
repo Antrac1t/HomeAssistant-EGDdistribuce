@@ -2,12 +2,6 @@ import json
 import datetime
 from urllib.request import urlopen
 
-HDO_Date_Od=[]
-HDO_Date_Do=[]
-
-HDO_Cas_Od = []
-HDO_Cas_Do = []
-
 def getRegion():
     return "https://hdo.distribuce24.cz/region"
 
@@ -24,6 +18,10 @@ def parseRegion(jsonRegion,psc):
     return unique_region_list[0]
 
 def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
+    HDO_Date_Od=[]
+    HDO_Date_Do=[]
+    HDO_Cas_Od = []
+    HDO_Cas_Do = []
     output_hdo_dict = [x for x in jsonHDO if x['A'] == HDO_A and x['B'] == HDO_B and x['DP'] == HDO_DP and x['region'] == HDORegion]
     dateNow = datetime.datetime.now()
     HDOStatus=False
@@ -50,5 +48,5 @@ def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
                 timeNow = datetime.datetime.strptime(dateNow.strftime('%H:%M:%S'), '%H:%M:%S')
                 if HDD_Date_od_obj <= timeNow <= HDD_Date_do_obj:
                     HDOStatus=True
-                
-    return(HDOStatus)
+    return HDOStatus,HDO_Cas_Od,HDO_Cas_Do;
+    #return(HDOStatus)
