@@ -55,6 +55,8 @@ class EgdDistribuce(BinarySensorEntity):
         self.responseHDOJson ="[]"
         self.region ="[]"
         self.status= False
+        self.HDO_Cas_Od = []
+        self.HDO_Cas_Do = []
         self.update()
 
 
@@ -70,13 +72,15 @@ class EgdDistribuce(BinarySensorEntity):
             return "mdi:power-off"
     @property
     def is_on(self):
-        self.status = downloader.parseHDO(self.responseHDOJson,self.region,self.codeA,self.codeB,self.codeDP)
+        self.status, self.HDO_Cas_Od,self.HDO_Cas_Do  = downloader.parseHDO(self.responseHDOJson,self.region,self.codeA,self.codeB,self.codeDP)
+        #self.status = downloader.parseHDO(self.responseHDOJson,self.region,self.codeA,self.codeB,self.codeDP)
         return self.status
 
     @property
     def device_state_attributes(self):
         attributes = {}
-        attributes['response_json'] = downloader.parseHDO(self.responseHDOJson,self.region,self.codeA,self.codeB,self.codeDP)
+        #attributes['response_json'] = downloader.parseHDO(self.responseHDOJson,self.region,self.codeA,self.codeB,self.codeDP)
+        attributes['HDO Times'] = self.get_times()
         return attributes
         
     @property
@@ -90,6 +94,14 @@ class EgdDistribuce(BinarySensorEntity):
     @property
     def device_class(self):
         return ''
+
+    def get_times(self):
+        i=0
+        timeReport=""
+        for n in self.HDO_Cas_Od:
+            timeReport = timeReport + '{}'.format(n) + ' - ' +self.HDO_Cas_Do[i] + '\n | '
+            i += 1
+        return timeReport
 
     @Throttle(MIN_TIME_BETWEEN_SCANS)
     def update(self):
