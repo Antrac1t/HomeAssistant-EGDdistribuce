@@ -54,6 +54,7 @@ class EgdDistribuce(BinarySensorEntity):
         self.responseRegionJson = "[]"
         self.responseHDOJson ="[]"
         self.region ="[]"
+        self.status= False
         self.update()
 
 
@@ -63,11 +64,14 @@ class EgdDistribuce(BinarySensorEntity):
 
     @property
     def icon(self):
-        return "mdi:power"
-
+        if self.status == True:
+            return "mdi:transmission-tower"
+        else:
+            return "mdi:power-off"
     @property
     def is_on(self):
-        return downloader.parseHDO(self.responseHDOJson,self.region,self.codeA,self.codeB,self.codeDP)
+        self.status = downloader.parseHDO(self.responseHDOJson,self.region,self.codeA,self.codeB,self.codeDP)
+        return self.status
 
     @property
     def device_state_attributes(self):
