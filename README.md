@@ -21,7 +21,7 @@ Then choose Components under HACS. Choose the menu in the upper right, and selec
 #### Option 2: Manual
 Clone this repository or download the source code as a zip file and add/merge the `custom_components/` folder with its contents in your configuration directory.
 
-### Step 2: Configure
+### Step 3: Configure
 Add the following to your `configuration.yaml` file:
 
 ```yaml
@@ -37,7 +37,7 @@ binary_sensor:
     
 ```
 
-### Step 3: Restart HA
+### Step 4: Restart HA
 For the newly added integration to be loaded, HA needs to be restarted.
 
 
