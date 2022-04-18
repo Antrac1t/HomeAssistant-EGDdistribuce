@@ -30,11 +30,35 @@ Add the following to your `configuration.yaml` file:
 binary_sensor:
   - platform: egddistribuce
     name: HDO
-    psc: 67168
+    psc: 
     code_a: "1"
     code_b: "8"
     code_dp: "05"
-    
+
+# HDO example for D57d tarfis you can create multiple binary sensors (A3B7P1,2,6)
+binary_sensor:
+  - platform: egdTAR
+    name: HDO
+    psc: 
+    code_a: "3"
+    code_b: "7"
+    code_dp: "01"
+
+binary_sensor:
+  - platform: egdPV
+    name: HDO
+    psc: 
+    code_a: "3"
+    code_b: "7"
+    code_dp: "02"
+
+binary_sensor:
+  - platform: egdTUV
+    name: HDO
+    psc: 
+    code_a: "3"
+    code_b: "7"
+    code_dp: "06"
 ```
 
 ### Step 3: Restart HA
