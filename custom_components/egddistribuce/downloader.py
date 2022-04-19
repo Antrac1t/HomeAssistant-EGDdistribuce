@@ -1,5 +1,6 @@
 import json
 import datetime
+import holidays
 from urllib.request import urlopen
 
 def getRegion():
@@ -7,7 +8,12 @@ def getRegion():
 
 def getHDO():
     return "https://hdo.distribuce24.cz/casy"
-    
+
+def getHoliday():
+    cz_holidays = holidays.CZ()  # this is a dict
+    dateNow = datetime.datetime.now()
+    return (dateNow in cz_holidays)
+
 def parseRegion(jsonRegion,psc):
     #input_region_dict = json.load(regionFile )
     output_region_dict = [x for x in jsonRegion if x['PSC'] == psc]
@@ -25,6 +31,10 @@ def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
     output_hdo_dict = [x for x in jsonHDO if x['A'] == HDO_A and x['B'] == HDO_B and x['DP'] == HDO_DP and x['region'] == HDORegion]
     dateNow = datetime.datetime.now()
     HDOStatus=False
+
+    isCZHoliday=getHoliday()
+
+    
     for itemData in output_hdo_dict:
         str_date_time_od = itemData['od']['rok'] + "-" + itemData['od']['mesic'] + "-" + itemData['od']['den']
         str_date_time_do = itemData['do']['rok'] + "-" + itemData['do']['mesic'] + "-" + itemData['do']['den']
@@ -37,10 +47,16 @@ def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
             for itemDataSazby in itemData['sazby']:
                 HDO_Sazba = (itemDataSazby['sazba'])
                 for itemDataDny in itemDataSazby['dny']:
-                    if dateNow.isoweekday() == itemDataDny['denVTydnu']:
-                        for itemDataCasy in itemDataDny['casy']:
-                            HDO_Cas_Od.append(itemDataCasy['od'])
-                            HDO_Cas_Do.append(itemDataCasy['do'])
+                    if isCZHoliday == True:
+                        if 7 == itemDataDny['denVTydnu']:
+                            for itemDataCasy in itemDataDny['casy']:
+                                HDO_Cas_Od.append(itemDataCasy['od'])
+                                HDO_Cas_Do.append(itemDataCasy['do'])
+                    else:    
+                        if dateNow.isoweekday() == itemDataDny['denVTydnu']:
+                            for itemDataCasy in itemDataDny['casy']:
+                                HDO_Cas_Od.append(itemDataCasy['od'])
+                                HDO_Cas_Do.append(itemDataCasy['do'])
 
             for x in range(len(HDO_Cas_Od)):
                 HDD_Date_od_obj = datetime.datetime.strptime(HDO_Cas_Od[x], '%H:%M:%S')
