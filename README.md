@@ -37,22 +37,22 @@ binary_sensor:
 
 # HDO example for D57d tarfis you can create multiple binary sensors (A3B7P1,2,6)
 binary_sensor:
-  - platform: egdTAR
-    name: HDO
+  - platform: egddistribuce
+    name: egdTAR
     psc: 
     code_a: "3"
     code_b: "7"
     code_dp: "01"
 
-  - platform: egdPV
-    name: HDO
+  - platform: egddistribuce
+    name: egdPV
     psc: 
     code_a: "3"
     code_b: "7"
     code_dp: "02"
 
-  - platform: egdTUV
-    name: HDO
+  - platform: egddistribuce
+    name: egdTUV
     psc: 
     code_a: "3"
     code_b: "7"
