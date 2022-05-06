@@ -44,7 +44,6 @@ binary_sensor:
     code_b: "7"
     code_dp: "01"
 
-binary_sensor:
   - platform: egdPV
     name: HDO
     psc: 
@@ -52,7 +51,6 @@ binary_sensor:
     code_b: "7"
     code_dp: "02"
 
-binary_sensor:
   - platform: egdTUV
     name: HDO
     psc: 
