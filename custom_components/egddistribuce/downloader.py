@@ -1,6 +1,7 @@
 import json
 import datetime
 import holidays
+import requests
 from urllib.request import urlopen
 
 def getRegion():
