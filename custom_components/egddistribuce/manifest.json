@@ -5,7 +5,7 @@
     "documentation": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce",
     "issue_tracker": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce/issues",
     "dependencies": [],
-    "codeowners": ["@Antrac1t"]
+    "codeowners": ["@Antrac1t"],
     "requirements": [],
     "quality_scale": "silver",
     "iot_class": "cloud_polling",
