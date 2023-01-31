@@ -32,7 +32,9 @@ def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
     output_hdo_dict = [x for x in jsonHDO if x['A'] == HDO_A and x['B'] == HDO_B and (x['DP'] == HDO_DP or x['DP'] == '0' + HDO_DP) and x['region'] == HDORegion]
     dateNow = datetime.datetime.now().date()
     dateNowTime = datetime.datetime.now()
-    
+    #roll back
+    rounded_now = dateNowTime.replace(second=0, microsecond=0)
+
     HDOStatus=False
 
     isCZHoliday=getHoliday()
@@ -64,7 +66,8 @@ def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
             for x in range(len(HDO_Cas_Od)):
                 HDD_Date_od_obj = datetime.datetime.strptime(HDO_Cas_Od[x], '%H:%M:%S')
                 HDD_Date_do_obj = datetime.datetime.strptime(HDO_Cas_Do[x], '%H:%M:%S')
-                timeNow = datetime.datetime.strptime(dateNowTime.strftime('%H:%M:%S'), '%H:%M:%S')
+                #roll back timeNow = datetime.datetime.strptime(dateNowTime.strftime('%H:%M:%S'), '%H:%M:%S')
+                timeNow = datetime.datetime.strptime(rounded_now.strftime('%H:%M:%S'), '%H:%M:%S')
                 if HDD_Date_od_obj <= timeNow <= HDD_Date_do_obj:
                     HDOStatus=True
     return HDOStatus,HDO_Cas_Od,HDO_Cas_Do;
