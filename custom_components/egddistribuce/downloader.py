@@ -12,7 +12,7 @@ def getHDO():
 
 def getHoliday():
     cz_holidays = holidays.CZ()  # this is a dict
-    dateNow = datetime.datetime.now()
+    dateNow = datetime.datetime.now().date()
     return (dateNow in cz_holidays)
 
 def parseRegion(jsonRegion,psc):
@@ -30,7 +30,9 @@ def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
     HDO_Cas_Od = []
     HDO_Cas_Do = []
     output_hdo_dict = [x for x in jsonHDO if x['A'] == HDO_A and x['B'] == HDO_B and (x['DP'] == HDO_DP or x['DP'] == '0' + HDO_DP) and x['region'] == HDORegion]
-    dateNow = datetime.datetime.now()
+    dateNow = datetime.datetime.now().date()
+    dateNowTime = datetime.datetime.now()
+    
     HDOStatus=False
 
     isCZHoliday=getHoliday()
@@ -42,7 +44,7 @@ def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
         date_time_od_obj = datetime.datetime.strptime(str_date_time_od, '%Y-%m-%d')
         date_time_do_obj = datetime.datetime.strptime(str_date_time_do, '%Y-%m-%d')
 
-        if date_time_od_obj <= dateNow <= date_time_do_obj:
+        if date_time_od_obj.date() <= dateNow <= date_time_do_obj.date():
             HDO_Date_Od=(str_date_time_od )   
             HDO_Date_Do=(str_date_time_do )
             for itemDataSazby in itemData['sazby']:
@@ -62,7 +64,7 @@ def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
             for x in range(len(HDO_Cas_Od)):
                 HDD_Date_od_obj = datetime.datetime.strptime(HDO_Cas_Od[x], '%H:%M:%S')
                 HDD_Date_do_obj = datetime.datetime.strptime(HDO_Cas_Do[x], '%H:%M:%S')
-                timeNow = datetime.datetime.strptime(dateNow.strftime('%H:%M:%S'), '%H:%M:%S')
+                timeNow = datetime.datetime.strptime(dateNowTime.strftime('%H:%M:%S'), '%H:%M:%S')
                 if HDD_Date_od_obj <= timeNow <= HDD_Date_do_obj:
                     HDOStatus=True
     return HDOStatus,HDO_Cas_Od,HDO_Cas_Do;
