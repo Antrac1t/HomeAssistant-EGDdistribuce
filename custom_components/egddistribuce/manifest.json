@@ -1,13 +1,13 @@
 {
-    "domain": "egddistribuce",
-    "name": "EGD Distribuce",
-    "version": "0.1",
-    "documentation": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce",
-    "issue_tracker": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce/issues",
-    "dependencies": [],
-    "codeowners": ["@Antrac1t"],
-    "requirements": [],
-    "quality_scale": "silver",
-    "iot_class": "cloud_polling",
-    "config_flow": false
+  "domain": "egddistribuce",
+  "name": "EGD Distribuce",
+  "config_flow": false,
+  "dependencies": [],
+  "documentation": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce/issues",
+  "quality_scale": "silver",
+  "requirements": [],
+  "version": "0.1",
+  "codeowners": ["@Antrac1t"]
 }
