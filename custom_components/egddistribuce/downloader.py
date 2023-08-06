@@ -29,7 +29,11 @@ def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
     HDO_Date_Do=[]
     HDO_Cas_Od = []
     HDO_Cas_Do = []
-    output_hdo_dict = [x for x in jsonHDO if x['A'] == HDO_A and x['B'] == HDO_B and (x['DP'] == HDO_DP or x['DP'] == '0' + HDO_DP) and x['region'] == HDORegion]
+    if len(HDORegion) == 2:
+        output_hdo_dict = [x for x in jsonHDO if x['A'] == HDO_A and x['B'] == HDO_B and (x['DP'] == HDO_DP or x['DP'] == '0' + HDO_DP) and x['region'] == HDORegion]
+    else:
+        output_hdo_dict = [x for x in jsonHDO if x['skupinaPovelu'] == HDO_A and x['region'] == HDORegion]
+        
     dateNow = datetime.datetime.now().date()
     dateNowTime = datetime.datetime.now()
     #roll back
