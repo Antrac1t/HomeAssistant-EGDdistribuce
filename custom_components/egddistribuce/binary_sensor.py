@@ -107,8 +107,11 @@ class EgdDistribuce(BinarySensorEntity):
     def update(self):
         responseRegion = requests.get(downloader.getRegion(), verify=False)
         if responseRegion.status_code == 200:
-            self.responseRegionJson = responseRegion.json() 
-            self.region=downloader.parseRegion(self.responseRegionJson,self.psc)
+            if len(self.psc) == 2:
+                self.region = self.psc
+            else:    
+                self.responseRegionJson = responseRegion.json() 
+                self.region=downloader.parseRegion(self.responseRegionJson,self.psc)
             responseHDO = requests.get(downloader.getHDO(), verify=False)
             if responseHDO.status_code == 200:
                 self.responseHDOJson = responseHDO.json()
