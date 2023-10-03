@@ -16,31 +16,31 @@ def getHoliday():
     return (dateNow in cz_holidays)
 
 def parseRegion(jsonRegion,psc):
-    #input_region_dict = json.load(regionFile )
-    output_region_dict = [x for x in jsonRegion if x['PSC'] == psc]
-    unique_region_list = []
-    for itemRegion in output_region_dict:  
-        if itemRegion['Region'] not in unique_region_list:
-            unique_region_list.append(itemRegion['Region'])
-    return unique_region_list[0]
+    if psc == "smart":
+        region = "X"
+    else:
+        input_region_dict = json.load(regionFile)
+        output_region_dict = [x for x in jsonRegion if x['PSC'] == psc]
+        unique_region_list = []
+        for itemRegion in output_region_dict:  
+            if itemRegion['Region'] not in unique_region_list:
+                unique_region_list.append(itemRegion['Region'])
+        region = unique_region_list[0]
+    return region
 
 def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
     HDO_Date_Od=[]
     HDO_Date_Do=[]
     HDO_Cas_Od = []
     HDO_Cas_Do = []
+    if HDORegion == "X":
+        output_hdo_dict = [x for x in jsonHDO if x['kodHdo_A'] == HDO_A] # and x['region'] == HDORegion]
+    else:
+        output_hdo_dict = [x for x in jsonHDO if x['A'] == HDO_A and x['B'] == HDO_B and (x['DP'] == HDO_DP or x['DP'] == '0' + HDO_DP) and x['region'] == HDORegion]
     dateNow = datetime.datetime.now().date()
     dateNowTime = datetime.datetime.now()
     #roll back
     rounded_now = dateNowTime.replace(second=0, microsecond=0)
-
-    if len(HDORegion) == 2:
-        dateNow = dateNow.replace(year=9999)
-        output_hdo_dict = [x for x in jsonHDO if x['skupinaPovelu'] == HDO_A and x['region'] == HDORegion]    
-    else:
-        output_hdo_dict = [x for x in jsonHDO if x['A'] == HDO_A and x['B'] == HDO_B and (x['DP'] == HDO_DP or x['DP'] == '0' + HDO_DP) and x['region'] == HDORegion]
-        
-
 
     HDOStatus=False
 
@@ -48,8 +48,17 @@ def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
 
     
     for itemData in output_hdo_dict:
-        str_date_time_od = itemData['od']['rok'] + "-" + itemData['od']['mesic'] + "-" + itemData['od']['den']
-        str_date_time_do = itemData['do']['rok'] + "-" + itemData['do']['mesic'] + "-" + itemData['do']['den']
+        current_year = datetime.datetime.now().year
+        if int(itemData['od']['rok']) == 9999:
+            if int(itemData['od']['mesic']) < int(itemData['do']['mesic']):
+                year = current_year
+            else:
+                year = current_year + 1
+        else:
+            year = itemData['od']['rok']
+
+        str_date_time_od = f"{current_year}-{itemData['od']['mesic']}-{itemData['od']['den']}"
+        str_date_time_do = f"{year}-{itemData['do']['mesic']}-{itemData['do']['den']}"
         date_time_od_obj = datetime.datetime.strptime(str_date_time_od, '%Y-%m-%d')
         date_time_do_obj = datetime.datetime.strptime(str_date_time_do, '%Y-%m-%d')
 

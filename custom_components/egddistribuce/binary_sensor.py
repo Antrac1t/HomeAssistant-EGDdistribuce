@@ -1,4 +1,4 @@
-__version__ = "0.1"
+__version__ = "0.2"
 
 import logging
 from . import downloader
@@ -24,11 +24,11 @@ CONF_NAME = "name"
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
+        vol.Required(CONF_NAME): cv.string,
         vol.Required(CONF_PSC): cv.string,
         vol.Required(CONF_A): cv.string,
-        vol.Required(CONF_B): cv.string, 
-        vol.Required(CONF_DP): cv.string,
-        vol.Required(CONF_NAME): cv.string,
+        vol.Optional(CONF_B): cv.string, 
+        vol.Optional(CONF_DP): cv.string
     }
 )
 
@@ -58,7 +58,12 @@ class EgdDistribuce(BinarySensorEntity):
         self.HDO_Cas_Od = []
         self.HDO_Cas_Do = []
         self.update()
+        self._attributes = {}
 
+    async def async_update(self):
+#        self._state = downloader.parseHDO(self.responseHDOJson, self.region, self.codeA, self.codeB, self.codeDP)
+        self._attributes['response_json'] = downloader.parseHDO(self.responseHDOJson, self.region, self.codeA, self.codeB, self.codeDP)
+        self._attributes['HDO Times'] = self.get_times()
 
     @property
     def name(self):
@@ -70,18 +75,18 @@ class EgdDistribuce(BinarySensorEntity):
             return "mdi:transmission-tower"
         else:
             return "mdi:power-off"
+            
     @property
     def is_on(self):
-        self.status, self.HDO_Cas_Od,self.HDO_Cas_Do  = downloader.parseHDO(self.responseHDOJson,self.region,self.codeA,self.codeB,self.codeDP)
-        #self.status = downloader.parseHDO(self.responseHDOJson,self.region,self.codeA,self.codeB,self.codeDP)
+        self.status, self.HDO_Cas_Od, self.HDO_Cas_Do = downloader.parseHDO(self.responseHDOJson,self.region,self.codeA,self.codeB,self.codeDP)
         return self.status
 
     @property
     def device_state_attributes(self):
-        attributes = {}
-        #attributes['response_json'] = downloader.parseHDO(self.responseHDOJson,self.region,self.codeA,self.codeB,self.codeDP)
-        attributes['HDO Times'] = self.get_times()
-        return attributes
+        #self.attributes = {}
+        #self.attributes['response_json'] = downloader.parseHDO(self.responseHDOJson,self.region,self.codeA,self.codeB,self.codeDP)
+        #self.attributes['HDO Times'] = self.get_times()
+        return self._attributes
         
     @property
     def should_poll(self):
@@ -107,11 +112,8 @@ class EgdDistribuce(BinarySensorEntity):
     def update(self):
         responseRegion = requests.get(downloader.getRegion(), verify=False)
         if responseRegion.status_code == 200:
-            if len(self.psc) == 2:
-                self.region = self.psc
-            else:    
-                self.responseRegionJson = responseRegion.json() 
-                self.region=downloader.parseRegion(self.responseRegionJson,self.psc)
+            self.responseRegionJson = responseRegion.json() 
+            self.region=downloader.parseRegion(self.responseRegionJson,self.psc)
             responseHDO = requests.get(downloader.getHDO(), verify=False)
             if responseHDO.status_code == 200:
                 self.responseHDOJson = responseHDO.json()
