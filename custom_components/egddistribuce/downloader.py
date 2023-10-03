@@ -19,7 +19,6 @@ def parseRegion(jsonRegion,psc):
     if psc == "smart":
         region = "X"
     else:
-        input_region_dict = json.load(regionFile)
         output_region_dict = [x for x in jsonRegion if x['PSC'] == psc]
         unique_region_list = []
         for itemRegion in output_region_dict:  
