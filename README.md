@@ -57,11 +57,17 @@ binary_sensor:
     code_a: "3"
     code_b: "7"
     code_dp: "06"
+
+# HDO example for smart meter with code `d57`
+binary_sensor:
+  - platform: egddistribuce
+    name: egdTAR
+    psc: "smart"
+    code_a: "d57"
 ```
 
 ### Step 3: Restart HA
 For the newly added integration to be loaded, HA needs to be restarted.
-
 
 ## References
 - PRE Distribuce - Home Assistant Sensor (https://github.com/slesinger/HomeAssistant-PREdistribuce)
