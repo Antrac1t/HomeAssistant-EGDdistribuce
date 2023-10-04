@@ -45,7 +45,6 @@ def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
 
     isCZHoliday=getHoliday()
 
-    
     for itemData in output_hdo_dict:
         current_year = datetime.datetime.now().year
         if int(itemData['od']['rok']) == 9999:
@@ -62,8 +61,8 @@ def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
         date_time_do_obj = datetime.datetime.strptime(str_date_time_do, '%Y-%m-%d')
 
         if date_time_od_obj.date() <= dateNow <= date_time_do_obj.date():
-            HDO_Date_Od=(str_date_time_od )   
-            HDO_Date_Do=(str_date_time_do )
+            HDO_Date_Od=(str_date_time_od)   
+            HDO_Date_Do=(str_date_time_do)
             for itemDataSazby in itemData['sazby']:
                 HDO_Sazba = (itemDataSazby['sazba'])
                 for itemDataDny in itemDataSazby['dny']:
@@ -86,4 +85,3 @@ def parseHDO(jsonHDO,HDORegion,HDO_A,HDO_B,HDO_DP):
                 if HDD_Date_od_obj <= timeNow <= HDD_Date_do_obj:
                     HDOStatus=True
     return HDOStatus,HDO_Cas_Od,HDO_Cas_Do;
-    #return(HDOStatus)

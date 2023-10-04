@@ -61,7 +61,7 @@ class EgdDistribuce(BinarySensorEntity):
         self._attributes = {}
 
     async def async_update(self):
-#        self._state = downloader.parseHDO(self.responseHDOJson, self.region, self.codeA, self.codeB, self.codeDP)
+        #self._state = downloader.parseHDO(self.responseHDOJson, self.region, self.codeA, self.codeB, self.codeDP)
         self._attributes['response_json'] = downloader.parseHDO(self.responseHDOJson, self.region, self.codeA, self.codeB, self.codeDP)
         self._attributes['HDO Times'] = self.get_times()
 
@@ -120,4 +120,3 @@ class EgdDistribuce(BinarySensorEntity):
                 self.last_update_success = True
         else:
             self.last_update_success = False
-        
