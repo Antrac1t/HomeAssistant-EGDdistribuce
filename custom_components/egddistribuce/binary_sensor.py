@@ -21,6 +21,8 @@ CONF_A = "code_a"
 CONF_B = "code_b"
 CONF_DP = "code_dp"
 CONF_NAME = "name"
+CONF_PRICE_NT = 'price_nt'
+CONF_PRICE_VT = 'price_vt'
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
@@ -28,7 +30,9 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Required(CONF_PSC): cv.string,
         vol.Required(CONF_A): cv.string,
         vol.Optional(CONF_B): cv.string, 
-        vol.Optional(CONF_DP): cv.string
+        vol.Optional(CONF_DP): cv.string,
+        vol.Optional(CONF_PRICE_NT): cv.string, 
+        vol.Optional(CONF_PRICE_VT): cv.string
     }
 )
 
@@ -38,6 +42,8 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     codeA = config.get(CONF_A)
     codeB = config.get(CONF_B)
     codeDP = config.get(CONF_DP)
+    priceNT = config.get(CONF_PRICE_NT)
+    priceVT = config.get(CONF_PRICE_VT)
 
     ents = []
     ents.append(EgdDistribuce(name,psc,codeA,codeB,codeDP))
@@ -82,11 +88,14 @@ class EgdDistribuce(BinarySensorEntity):
         return self.status
 
     @property
-    def device_state_attributes(self):
-        #self.attributes = {}
+    def extra_state_attributes(self):
+        # self.attributes = {}
         #self.attributes['response_json'] = downloader.parseHDO(self.responseHDOJson,self.region,self.codeA,self.codeB,self.codeDP)
-        #self.attributes['HDO Times'] = self.get_times()
-        return self._attributes
+        # self._attributes['HDO Times'] = self.get_times()
+        return {
+            'response_json': self._attributes['response_json'],
+            'HDO Times': self._attributes['HDO Times'],
+        }
         
     @property
     def should_poll(self):
