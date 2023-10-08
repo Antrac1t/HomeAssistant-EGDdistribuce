@@ -66,6 +66,60 @@ price_vt: "2.11469"
 price_nt: "0.24611"
 ```
 
+You can show them in a graph like so:
+
+![electricity prices graph](docs/graf.png)
+
+```yaml
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Cena elektřiny dnes
+  show_states: true
+  colorize_states: true
+series:
+  - entity: binary_sensor.hdo
+    name: Distribuce
+    type: column
+    data_generator: |
+      return entity.attributes.HDO_HOURLY_TODAY.map((price, index) => {
+        const date = new Date()
+        date.setHours(index)
+        date.setMinutes(0)
+        date.setSeconds(0)
+        return [date, price];
+      });
+    show:
+      in_header: before_now
+  - entity: sensor.current_market_price_czk_kwh
+    name: Silová elektřina
+    type: column
+    data_generator: >
+      return
+      entity.attributes.today_hourly_consumption_prices_incl_vat.map((price,
+      index) => {
+        const date = new Date()
+        date.setHours(index)
+        date.setMinutes(0)
+        date.setSeconds(0)
+        return [date, price];
+      });
+    show:
+      in_header: before_now
+now:
+  show: true
+graph_span: 24h
+stacked: true
+span:
+  start: day
+apex_config:
+  plotOptions:
+    bar:
+      dataLabels:
+        total:
+          enabled: true
+```
+
 ### Step 3: Restart HA
 
 For the newly added integration to be loaded, HA needs to be restarted.
