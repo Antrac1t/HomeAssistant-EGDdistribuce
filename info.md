@@ -5,6 +5,7 @@ This integration provides sensors informing about low/high energy tariff (HDO), 
 This sensor shows only the current state of HDO as a binary sensor.
 
 ### Example configuration
+
 Add the following to your `configuration.yaml` file:
 
 ```yaml
@@ -38,6 +39,13 @@ binary_sensor:
     name: egdTAR
     psc: "smart"
     code_a: "d57"
+```
+
+You can also specify prices of VT/NT according to your tariff, per 1 kWh to get current distribution price. No VAT calculation is performed, you get one of the prices depending on HDO state.
+
+```yaml
+price_vt: "2.11469"
+price_nt: "0.24611"
 ```
 
 Home Assistant needs to be restored after modifying the configuration.

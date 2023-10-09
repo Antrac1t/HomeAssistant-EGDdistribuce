@@ -5,8 +5,8 @@
 This sensor is downloading json data from EGD webpage. The integration needs the **postal code** and the **HDO code** (A,B,DP). These information can be checked on EGD web site https://www.egd.cz/casy-platnosti-nizkeho-tarifu.
 The **postal code** and the **HDO code** have to be defined in configuration.yaml
 
-
 This sensor shows
+
 - current state of HDO
 
 ## Installation
@@ -19,9 +19,11 @@ Make sure you have HACS installed. If you don't, run `curl -sfSL https://hacs.xy
 Then choose Components under HACS. Choose the menu in the upper right, and select Custom repositories. Then add this repo's URL. You should be able to choose to Install now.
 
 #### Option 2: Manual
+
 Clone this repository or download the source code as a zip file and add/merge the `custom_components/` folder with its contents in your configuration directory.
 
 ### Step 2: Configure
+
 Add the following to your `configuration.yaml` file:
 
 ```yaml
@@ -57,9 +59,72 @@ binary_sensor:
     code_a: "d57"
 ```
 
+You can also specify prices of VT/NT according to your tariff, per 1 kWh to get current distribution price. No VAT calculation is performed, you get one of the prices depending on HDO state.
+
+```yaml
+price_vt: "2.11469"
+price_nt: "0.24611"
+```
+
+You can show them in a graph like so:
+
+![electricity prices graph](docs/graf.png)
+
+```yaml
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Cena elektřiny dnes
+  show_states: true
+  colorize_states: true
+series:
+  - entity: binary_sensor.hdo
+    name: Distribuce
+    type: column
+    data_generator: |
+      return entity.attributes.HDO_HOURLY_TODAY.map((price, index) => {
+        const date = new Date()
+        date.setHours(index)
+        date.setMinutes(0)
+        date.setSeconds(0)
+        return [date, price];
+      });
+    show:
+      in_header: before_now
+  - entity: sensor.current_market_price_czk_kwh
+    name: Silová elektřina
+    type: column
+    data_generator: >
+      return
+      entity.attributes.today_hourly_consumption_prices_incl_vat.map((price,
+      index) => {
+        const date = new Date()
+        date.setHours(index)
+        date.setMinutes(0)
+        date.setSeconds(0)
+        return [date, price];
+      });
+    show:
+      in_header: before_now
+now:
+  show: true
+graph_span: 24h
+stacked: true
+span:
+  start: day
+apex_config:
+  plotOptions:
+    bar:
+      dataLabels:
+        total:
+          enabled: true
+```
+
 ### Step 3: Restart HA
+
 For the newly added integration to be loaded, HA needs to be restarted.
 
 ## References
+
 - PRE Distribuce - Home Assistant Sensor (https://github.com/slesinger/HomeAssistant-PREdistribuce)
 - CEZ Distribuce - Home Assistant Sensor (https://github.com/zigul/HomeAssistant-CEZdistribuce)
