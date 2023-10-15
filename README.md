@@ -36,6 +36,8 @@ binary_sensor:
     code_a: "3"
     code_b: "7"
     code_dp: "01"
+    price_vt: "2.11469"
+    price_nt: "0.24611"
 
   - platform: egddistribuce
     name: egdPV
@@ -59,14 +61,9 @@ binary_sensor:
     code_a: "d57"
 ```
 
-You can also specify prices of VT/NT according to your tariff, per 1 kWh to get current distribution price. No VAT calculation is performed, you get one of the prices depending on HDO state.
+Codes are sometimes printed on you energy meter, or you can find them on your egd.cz
 
-```yaml
-price_vt: "2.11469"
-price_nt: "0.24611"
-```
-
-You can show them in a graph like so:
+You can show them in a graph, with other entities, for example `current_market_price_czk_kwh` spot prices from Nano Green:
 
 ![electricity prices graph](docs/graf.png)
 
@@ -78,8 +75,8 @@ header:
   show_states: true
   colorize_states: true
 series:
-  - entity: binary_sensor.hdo
-    name: Distribuce
+  - entity: binary_sensor.egdTAR
+    name: Cena distribuce s DHP
     type: column
     data_generator: |
       return entity.attributes.HDO_HOURLY_TODAY.map((price, index) => {
