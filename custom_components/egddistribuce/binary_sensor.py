@@ -81,16 +81,15 @@ class EgdDistribuce(BinarySensorEntity):
 
     @property
     def is_on(self):
-        self.status, self.HDO_Cas_Od, self.HDO_Cas_Do, self.HDO_HOURLY_TODAY, self.HDO_HOURLY_TOMORROW = downloader.parse_HDO(
-            self.responseHDOJson, self.region, self.codeA, self.codeB, self.codeDP, self.priceNT, self.priceVT)
+        self.status, self.HDO_Cas_Od, self.HDO_Cas_Do, self.HDO_HOURLY = downloader.parse_HDO(
+            self, self.responseHDOJson, self.region, self.codeA, self.codeB, self.codeDP, self.priceNT, self.priceVT)
 
         return self.status
 
     @property
     def extra_state_attributes(self):
         return {
-            'HDO_HOURLY_TODAY': self.HDO_HOURLY_TODAY,
-            'HDO_HOURLY_TOMORROW': self.HDO_HOURLY_TOMORROW,
+            'HDO_HOURLY': self.HDO_HOURLY,
             'HDO Times': self.get_times(),
             'HDO_Cas_Od': self.HDO_Cas_Od,
             'HDO_Cas_Do': self.HDO_Cas_Do,
