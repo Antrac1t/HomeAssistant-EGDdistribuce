@@ -36,6 +36,8 @@ binary_sensor:
     code_a: "3"
     code_b: "7"
     code_dp: "01"
+    price_vt: "2.11469"
+    price_nt: "0.24611"
 
   - platform: egddistribuce
     name: egdPV
@@ -59,65 +61,40 @@ binary_sensor:
     code_a: "d57"
 ```
 
-You can also specify prices of VT/NT according to your tariff, per 1 kWh to get current distribution price. No VAT calculation is performed, you get one of the prices depending on HDO state.
+Codes are sometimes printed on you energy meter, or you can find them on your egd.cz
 
-```yaml
-price_vt: "2.11469"
-price_nt: "0.24611"
-```
-
-You can show them in a graph like so:
+You can show them in a graph, with other entities, for example spot prices from Czech Energy Spot Prices (https://github.com/rnovacek/homeassistant_cz_energy_spot_prices):
 
 ![electricity prices graph](docs/graf.png)
 
 ```yaml
 type: custom:apexcharts-card
-header:
-  show: true
-  title: Cena elektřiny dnes
-  show_states: true
-  colorize_states: true
-series:
-  - entity: binary_sensor.hdo
-    name: Distribuce
-    type: column
-    data_generator: |
-      return entity.attributes.HDO_HOURLY_TODAY.map((price, index) => {
-        const date = new Date()
-        date.setHours(index)
-        date.setMinutes(0)
-        date.setSeconds(0)
-        return [date, price];
-      });
-    show:
-      in_header: before_now
-  - entity: sensor.current_market_price_czk_kwh
-    name: Silová elektřina
-    type: column
-    data_generator: >
-      return
-      entity.attributes.today_hourly_consumption_prices_incl_vat.map((price,
-      index) => {
-        const date = new Date()
-        date.setHours(index)
-        date.setMinutes(0)
-        date.setSeconds(0)
-        return [date, price];
-      });
-    show:
-      in_header: before_now
-now:
-  show: true
-graph_span: 24h
-stacked: true
+graph_span: 2d
 span:
   start: day
-apex_config:
-  plotOptions:
-    bar:
-      dataLabels:
-        total:
-          enabled: true
+now:
+  show: true
+  label: Nyní
+stacked: true
+series:
+  - entity: binary_sensor.hdo
+    float_precision: 2
+    unit: kč/kWh
+    show:
+      in_header: raw
+    data_generator: >
+      return  Object.entries(entity.attributes.HDO_HOURLY).map(([date,
+      value], index) => {
+        return [new Date(date).getTime(), value];
+      });
+  - entity: sensor.current_spot_electricity_price
+    float_precision: 2
+    show:
+      in_header: raw
+    data_generator: |
+      return Object.entries(entity.attributes).map(([date, value], index) => {
+        return [new Date(date).getTime(), (value + 0.35 + 0.028 + 0.114 )* 1.21];
+      });
 ```
 
 ### Step 3: Restart HA

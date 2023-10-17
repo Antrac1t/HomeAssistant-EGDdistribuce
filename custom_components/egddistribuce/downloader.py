@@ -1,4 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time, timezone
+from zoneinfo import ZoneInfo
+from typing import Dict
 import holidays
 
 
@@ -23,14 +25,14 @@ def parse_region(jsonRegion, psc):
     return region
 
 
-def parse_HDO(jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_priceVT):
+def parse_HDO(self, jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_priceVT):
     HDO_Cas_Od = []
     HDO_Cas_Do = []
     HDO_Cas_Od_zitra = []
     HDO_Cas_Do_zitra = []
-    HDO_HOURLY_TODAY = []
-    HDO_HOURLY_TOMORROW = []
+    HDO_HOURLY: Dict[datetime, float] = {}
     HDO_Status = False
+    zoneinfo = ZoneInfo(self.hass.config.time_zone)
 
     if HDORegion == "X":
         output_hdo_dict = [x for x in jsonHDO if x['kodHdo_A'] == HDO_A]
@@ -97,25 +99,23 @@ def parse_HDO(jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_priceVT
                         od[x], '%H:%M:%S')
                     HDD_Date_do_obj = datetime.strptime(
                         do[x], '%H:%M:%S')
-                    if HDD_Date_od_obj <= compare_time <= HDD_Date_do_obj:
+                    if HDD_Date_od_obj <= compare_time < HDD_Date_do_obj:
                         result = True
                 return result
 
             HDO_Status = get_status(
                 datetime.now().replace(second=0, microsecond=0), HDO_Cas_Od, HDO_Cas_Do)
 
-            for x in range(0, 24):
-                if get_status(datetime.now().replace(
-                        hour=x, minute=0, second=0, microsecond=0), HDO_Cas_Od, HDO_Cas_Do):
-                    HDO_HOURLY_TODAY.append(HDO_priceNT)
-                else:
-                    HDO_HOURLY_TODAY.append(HDO_priceVT)
+            for x in range(0, (48*4)):
+                date = datetime.combine(date_now, time=time(
+                    hour=0)) + timedelta(minutes=x*15)
 
-            for x in range(0, 24):
-                if get_status(datetime.now().replace(
-                        hour=x, minute=0, day=datetime.now().day + 1), HDO_Cas_Od_zitra, HDO_Cas_Do_zitra):
-                    HDO_HOURLY_TOMORROW.append(HDO_priceNT)
-                else:
-                    HDO_HOURLY_TOMORROW.append(HDO_priceVT)
+                dateIso = (datetime.combine(date_now, time=time(
+                    hour=0), tzinfo=zoneinfo) + timedelta(minutes=x*15))
 
-    return HDO_Status, HDO_Cas_Od, HDO_Cas_Do, HDO_HOURLY_TODAY, HDO_HOURLY_TOMORROW
+                if get_status(date, HDO_Cas_Od, HDO_Cas_Do):
+                    HDO_HOURLY[dateIso] = float(HDO_priceNT)
+                else:
+                    HDO_HOURLY[dateIso] = float(HDO_priceVT)
+
+    return HDO_Status, HDO_Cas_Od, HDO_Cas_Do, HDO_HOURLY
