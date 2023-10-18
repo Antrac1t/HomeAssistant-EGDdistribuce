@@ -72,30 +72,38 @@ type: custom:apexcharts-card
 graph_span: 2d
 span:
   start: day
+stacked: true
+apex_config:
+  legend:
+    show: false
+all_series_config:
+  type: column
+  group_by:
+    func: avg
+    duration: 1hour
 now:
   show: true
   label: Nyní
-stacked: true
+header:
+  show: true
+  show_states: true
 series:
   - entity: binary_sensor.hdo
     float_precision: 2
-    unit: kč/kWh
-    show:
-      in_header: raw
     data_generator: >
-      return  Object.entries(entity.attributes.HDO_HOURLY).map(([date,
-      value], index) => {
+      return  Object.entries(entity.attributes.HDO_HOURLY).map(([date, value],
+      index) => {
         return [new Date(date).getTime(), value];
       });
   - entity: sensor.current_spot_electricity_price
     float_precision: 2
-    show:
-      in_header: raw
     data_generator: |
       return Object.entries(entity.attributes).map(([date, value], index) => {
         return [new Date(date).getTime(), (value + 0.35 + 0.028 + 0.114 )* 1.21];
       });
 ```
+
+Since spot prices are (at the moment) hourly and HDO can be in 15 minute increments, for the graph to work well, both entities must have the same interval duration. Function `group_by` takes care of it. In this example it groups by 1 hour, because that works for me well. In your case, maybe `30minutes` or even `15minutes` might be equired.
 
 ### Step 3: Restart HA
 
