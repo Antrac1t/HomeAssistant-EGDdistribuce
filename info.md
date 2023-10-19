@@ -48,4 +48,4 @@ price_vt: "2.11469"
 price_nt: "0.24611"
 ```
 
-Home Assistant needs to be restored after modifying the configuration.
+Home Assistant needs to be restarted after modifying the configuration.
