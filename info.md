@@ -18,6 +18,8 @@ binary_sensor:
     code_a: "3"
     code_b: "7"
     code_dp: "01"
+    price_vt: "2.11469"
+    price_nt: "0.24611"
 
   - platform: egddistribuce
     name: egdPV
@@ -25,6 +27,8 @@ binary_sensor:
     code_a: "3"
     code_b: "7"
     code_dp: "02"
+    price_vt: "2.11469"
+    price_nt: "0.24611"
 
   - platform: egddistribuce
     name: egdTUV
@@ -32,6 +36,8 @@ binary_sensor:
     code_a: "3"
     code_b: "7"
     code_dp: "06"
+    price_vt: "2.11469"
+    price_nt: "0.24611"
 
 # HDO example for smart meter with code `d57`
 binary_sensor:
@@ -39,13 +45,19 @@ binary_sensor:
     name: egdTAR
     psc: "smart"
     code_a: "d57"
+    price_vt: "2.11469"
+    price_nt: "0.24611"
+
+# current HDO price
+sensor:
+  - platform: template
+    sensors:
+      cena_distribuce_eg_d:
+        friendly_name: "cena distribuce EG.d"
+        unit_of_measurement: "Kč/kWh"
+        value_template: "{{ state_attr('binary_sensor.hdo', 'current_price')}}"
 ```
 
-You can also specify prices of VT/NT according to your tariff, per 1 kWh to get current distribution price. No VAT calculation is performed, you get one of the prices depending on HDO state.
-
-```yaml
-price_vt: "2.11469"
-price_nt: "0.24611"
-```
+`price_vt` and `price_nt` are prices of VT/NT according to your tariff, per 1 kWh to get current distribution price. No VAT calculation is performed, you get one of the prices you set, depending on HDO state.
 
 Home Assistant needs to be restarted after modifying the configuration.
