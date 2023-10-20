@@ -45,6 +45,8 @@ binary_sensor:
     code_a: "3"
     code_b: "7"
     code_dp: "02"
+    price_vt: "2.11469"
+    price_nt: "0.24611"
 
   - platform: egddistribuce
     name: egdTUV
@@ -52,6 +54,8 @@ binary_sensor:
     code_a: "3"
     code_b: "7"
     code_dp: "06"
+    price_vt: "2.11469"
+    price_nt: "0.24611"
 
 # HDO example for smart meter with code `d57`
 binary_sensor:
@@ -59,6 +63,17 @@ binary_sensor:
     name: egdTAR
     psc: "smart"
     code_a: "d57"
+    price_vt: "2.11469"
+    price_nt: "0.24611"
+
+# current HDO price
+sensor:
+  - platform: template
+    sensors:
+      cena_distribuce_eg_d:
+        friendly_name: "cena distribuce EG.d"
+        unit_of_measurement: "Kč/kWh"
+        value_template: "{{ state_attr('binary_sensor.hdo', 'current_price')}}"
 ```
 
 Codes are sometimes printed on you energy meter, or you can find them on your egd.cz
@@ -90,6 +105,7 @@ header:
 series:
   - entity: binary_sensor.hdo
     float_precision: 2
+    unit: Kč/kWh
     data_generator: >
       return  Object.entries(entity.attributes.HDO_HOURLY).map(([date, value],
       index) => {

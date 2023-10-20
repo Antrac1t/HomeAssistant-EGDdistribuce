@@ -32,6 +32,7 @@ def parse_HDO(self, jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_p
     HDO_Cas_Do_zitra = []
     HDO_HOURLY: Dict[datetime, float] = {}
     HDO_Status = False
+    price = HDO_priceVT
     zoneinfo = ZoneInfo(self.hass.config.time_zone)
 
     if HDORegion == "X":
@@ -105,8 +106,10 @@ def parse_HDO(self, jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_p
 
             HDO_Status = get_status(
                 datetime.now().replace(second=0, microsecond=0), HDO_Cas_Od, HDO_Cas_Do)
+            if HDO_Status == True:
+                price = HDO_priceNT
 
-            for x in range(0, (48*4)):
+            for x in range(0, (24*4)):
                 date = datetime.combine(date_now, time=time(
                     hour=0)) + timedelta(minutes=x*15)
 
@@ -118,4 +121,16 @@ def parse_HDO(self, jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_p
                 else:
                     HDO_HOURLY[dateIso] = float(HDO_priceVT)
 
-    return HDO_Status, HDO_Cas_Od, HDO_Cas_Do, HDO_HOURLY
+            for x in range(0, (24*4)):
+                date = datetime.combine(date_tomorrow, time=time(
+                    hour=0)) + timedelta(minutes=x*15)
+
+                dateIso = (datetime.combine(date_tomorrow, time=time(
+                    hour=0), tzinfo=zoneinfo) + timedelta(minutes=x*15))
+
+                if get_status(date, HDO_Cas_Od_zitra, HDO_Cas_Do_zitra):
+                    HDO_HOURLY[dateIso] = float(HDO_priceNT)
+                else:
+                    HDO_HOURLY[dateIso] = float(HDO_priceVT)
+
+    return HDO_Status, HDO_Cas_Od, HDO_Cas_Do, HDO_HOURLY, price
