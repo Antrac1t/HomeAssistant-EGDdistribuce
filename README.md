@@ -106,7 +106,7 @@ series:
   - entity: binary_sensor.hdo
     float_precision: 2
     show:
-      in_header: false
+      in_header: before_now
     unit: Kč/kWh
     data_generator: >
       return  Object.entries(entity.attributes.HDO_HOURLY).map(([date, value],
@@ -115,6 +115,8 @@ series:
       });
   - entity: sensor.current_spot_electricity_price
     float_precision: 2
+    show:
+      in_header: before_now
     data_generator: |
       return Object.entries(entity.attributes).map(([date, value], index) => {
         return [new Date(date).getTime(), (value + 0.35 + 0.028 + 0.114 )* 1.21];
