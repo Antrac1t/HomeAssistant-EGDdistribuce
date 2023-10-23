@@ -93,9 +93,6 @@ apex_config:
     show: false
 all_series_config:
   type: column
-  group_by:
-    func: avg
-    duration: 1hour
 now:
   show: true
   label: Nyní
@@ -105,6 +102,9 @@ header:
 series:
   - entity: binary_sensor.hdo
     float_precision: 2
+    group_by:
+      func: avg
+      duration: 1hour
     show:
       in_header: before_now
     unit: Kč/kWh
