@@ -105,6 +105,8 @@ header:
 series:
   - entity: binary_sensor.hdo
     float_precision: 2
+    show:
+      in_header: before_now
     unit: Kč/kWh
     data_generator: >
       return  Object.entries(entity.attributes.HDO_HOURLY).map(([date, value],
