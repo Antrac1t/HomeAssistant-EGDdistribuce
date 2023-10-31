@@ -57,8 +57,6 @@ class EgdDistribuce(BinarySensorEntity):
         self.codeA = codeA
         self.codeB = codeB
         self.codeDP = codeDP
-        self.priceNT = priceNT
-        self.priceVT = priceVT
         self.responseRegionJson = "[]"
         self.responseHDOJson = "[]"
         self.region = "[]"
@@ -67,6 +65,16 @@ class EgdDistribuce(BinarySensorEntity):
         self.HDO_Cas_Do = []
         self.update()
         self._attributes = {}
+
+        if priceNT is not None:
+            self.priceNT = priceNT
+        else:
+            self.priceNT = 0
+
+        if priceVT is not None:
+            self.priceVT = priceVT
+        else:
+            self.priceVT = 0
 
     @property
     def name(self):
