@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, time, timezone
+from datetime import datetime, timedelta, time
 from zoneinfo import ZoneInfo
 from typing import Dict
 import holidays
@@ -56,7 +56,7 @@ def parse_HDO(self, jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_p
             else:
                 year = current_year + 1
         else:
-            year = itemData['od']['rok']
+            year = itemData['do']['rok']
 
         str_date_time_od = f"{current_year}-{itemData['od']['mesic']}-{itemData['od']['den']}"
         str_date_time_do = f"{year}-{itemData['do']['mesic']}-{itemData['do']['den']}"
