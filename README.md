@@ -60,7 +60,7 @@ binary_sensor:
 # HDO example for smart meter with code `d57`
 binary_sensor:
   - platform: egddistribuce
-    name: egdTAR
+    name: hdo
     psc: "smart"
     code_a: "d57"
     price_vt: "2.11469"
