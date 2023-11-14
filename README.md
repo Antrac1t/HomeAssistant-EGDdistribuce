@@ -67,13 +67,12 @@ binary_sensor:
     price_nt: "0.24611"
 
 # current HDO price
-sensor:
-  - platform: template
-    sensors:
-      cena_distribuce_eg_d:
-        friendly_name: "cena distribuce EG.d"
+template:
+  - sensor:
+      - name: "cena_distribuce_eg_d"
         unit_of_measurement: "Kč/kWh"
-        value_template: "{{ state_attr('binary_sensor.hdo', 'current_price')}}"
+        state_class: measurement
+        state: "{{ state_attr('binary_sensor.hdo', 'current_price')}}"
 ```
 
 Codes are sometimes printed on you energy meter, or you can find them on your egd.cz

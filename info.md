@@ -42,20 +42,19 @@ binary_sensor:
 # HDO example for smart meter with code `d57`
 binary_sensor:
   - platform: egddistribuce
-    name: egdTAR
+    name: hdo
     psc: "smart"
     code_a: "d57"
     price_vt: "2.11469"
     price_nt: "0.24611"
 
 # current HDO price
-sensor:
-  - platform: template
-    sensors:
-      cena_distribuce_eg_d:
-        friendly_name: "cena distribuce EG.d"
+template:
+  - sensor:
+      - name: "cena_distribuce_eg_d"
         unit_of_measurement: "Kč/kWh"
-        value_template: "{{ state_attr('binary_sensor.hdo', 'current_price')}}"
+        state_class: measurement
+        state: "{{ state_attr('binary_sensor.hdo', 'current_price')}}"
 ```
 
 `price_vt` and `price_nt` are prices of VT/NT according to your tariff, per 1 kWh to get current distribution price. No VAT calculation is performed, you get one of the prices you set, depending on HDO state.
