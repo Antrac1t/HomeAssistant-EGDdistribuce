@@ -57,10 +57,10 @@ binary_sensor:
     price_vt: "2.11469"
     price_nt: "0.24611"
 
-# HDO example for smart meter with code `d57`
+# HDO example for smart meter with code `d57`, used in graph
 binary_sensor:
   - platform: egddistribuce
-    name: egdTAR
+    name: hdo
     psc: "smart"
     code_a: "d57"
     price_vt: "2.11469"
@@ -91,6 +91,9 @@ stacked: true
 apex_config:
   legend:
     show: false
+  yaxis:
+    tickAmount: 16
+    max: 8
 all_series_config:
   type: column
 now:
