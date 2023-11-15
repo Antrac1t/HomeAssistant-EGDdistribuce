@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, time
 from zoneinfo import ZoneInfo
 from typing import Dict
 import holidays
+import logging
 
 
 def get_region():
@@ -100,6 +101,10 @@ def parse_HDO(self, jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_p
                         od[x], '%H:%M:%S')
                     HDD_Date_do_obj = datetime.strptime(
                         do[x], '%H:%M:%S')
+
+                    if do[x].endswith(':59:00'):
+                        HDD_Date_do_obj = HDD_Date_do_obj+timedelta(minutes=1)
+
                     if HDD_Date_od_obj <= compare_time < HDD_Date_do_obj:
                         result = True
                 return result
