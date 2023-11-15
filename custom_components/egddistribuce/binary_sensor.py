@@ -114,11 +114,7 @@ class EgdDistribuce(BinarySensorEntity):
 
     @property
     def device_class(self):
-        return 'monetary'
-
-    @property
-    def unit_of_measurement(self):
-        return 'Kč/kWh'
+        return ''
 
     def get_times(self):
         i = 0
