@@ -57,7 +57,7 @@ binary_sensor:
     price_vt: "2.11469"
     price_nt: "0.24611"
 
-# HDO example for smart meter with code `d57`
+# HDO example for smart meter with code `d57`, used in graph
 binary_sensor:
   - platform: egddistribuce
     name: hdo
@@ -67,13 +67,12 @@ binary_sensor:
     price_nt: "0.24611"
 
 # current HDO price
-sensor:
-  - platform: template
-    sensors:
-      cena_distribuce_eg_d:
-        friendly_name: "cena distribuce EG.d"
+template:
+  - sensor:
+      - name: "cena_distribuce_eg_d"
         unit_of_measurement: "Kč/kWh"
-        value_template: "{{ state_attr('binary_sensor.hdo', 'current_price')}}"
+        state_class: measurement
+        state: "{{ state_attr('binary_sensor.hdo', 'current_price')}}"
 ```
 
 Codes are sometimes printed on you energy meter, or you can find them on your egd.cz
@@ -91,6 +90,9 @@ stacked: true
 apex_config:
   legend:
     show: false
+  yaxis:
+    tickAmount: 16
+    max: 8
 all_series_config:
   type: column
 now:

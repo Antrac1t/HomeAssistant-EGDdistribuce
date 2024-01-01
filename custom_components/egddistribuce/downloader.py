@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, time
 from zoneinfo import ZoneInfo
 from typing import Dict
 import holidays
+import logging
 
 
 def get_region():
@@ -50,16 +51,26 @@ def parse_HDO(self, jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_p
 
     for itemData in output_hdo_dict:
         current_year = datetime.now().year
-        if int(itemData['od']['rok']) == 9999:
-            if int(itemData['od']['mesic']) < int(itemData['do']['mesic']):
-                year = current_year
-            else:
-                year = current_year + 1
-        else:
-            year = itemData['do']['rok']
 
-        str_date_time_od = f"{current_year}-{itemData['od']['mesic']}-{itemData['od']['den']}"
-        str_date_time_do = f"{year}-{itemData['do']['mesic']}-{itemData['do']['den']}"
+        if int(itemData['od']['rok']) == 9999:
+            # year 9999 could mean this year, next year, maybe even the previous year
+
+            if int(itemData['od']['mesic']) > int(itemData['do']['mesic']):
+                if int(itemData['do']['mesic']) >= datetime.now().month:
+                    odYear = current_year - 1
+                    doYear = current_year
+                else:
+                    odYear = current_year
+                    doYear = current_year + 1
+            else:
+                odYear = current_year
+                doYear = current_year
+        else:
+            odYear = itemData['od']['rok']
+            doYear = itemData['do']['rok']
+
+        str_date_time_od = f"{odYear}-{itemData['od']['mesic']}-{itemData['od']['den']}"
+        str_date_time_do = f"{doYear}-{itemData['do']['mesic']}-{itemData['do']['den']}"
         date_time_od_obj = datetime.strptime(
             str_date_time_od, '%Y-%m-%d')
         date_time_do_obj = datetime.strptime(
@@ -100,6 +111,10 @@ def parse_HDO(self, jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_p
                         od[x], '%H:%M:%S')
                     HDD_Date_do_obj = datetime.strptime(
                         do[x], '%H:%M:%S')
+
+                    if do[x].endswith(':59:00'):
+                        HDD_Date_do_obj = HDD_Date_do_obj+timedelta(minutes=1)
+
                     if HDD_Date_od_obj <= compare_time < HDD_Date_do_obj:
                         result = True
                 return result
