@@ -56,7 +56,7 @@ def parse_HDO(self, jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_p
             # year 9999 could mean this year, next year, maybe even the previous year
 
             if int(itemData['od']['mesic']) > int(itemData['do']['mesic']):
-                if int(itemData['do']['mesic']) > datetime.now().month:
+                if int(itemData['do']['mesic']) >= datetime.now().month:
                     odYear = current_year - 1
                     doYear = current_year
                 else:
