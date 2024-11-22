@@ -8,6 +8,7 @@ The **postal code** and the **HDO code** have to be defined in configuration.yam
 This sensor shows
 
 - current state of HDO
+- remaining time to change status
 
 ## Installation
 
