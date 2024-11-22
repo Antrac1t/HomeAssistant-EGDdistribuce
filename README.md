@@ -126,6 +126,9 @@ series:
       });
 ```
 
+Since spot prices are (at the moment) hourly and HDO can be in 15 minute increments, for the graph to work well, both entities must have the same interval duration. Function `group_by` takes care of it. In this example it groups by 1 hour, because that works for me well. In your case, maybe `30minutes` or even `15minutes` might be equired.
+
+
 adding remaining time in GUI page
 ```yaml
   - entity: binary_sensor.hdo_nizky_tarif
@@ -133,8 +136,6 @@ adding remaining time in GUI page
     type: attribute
     attribute: remaining_time
 ```
-
-Since spot prices are (at the moment) hourly and HDO can be in 15 minute increments, for the graph to work well, both entities must have the same interval duration. Function `group_by` takes care of it. In this example it groups by 1 hour, because that works for me well. In your case, maybe `30minutes` or even `15minutes` might be equired.
 
 ### Step 3: Restart HA
 
