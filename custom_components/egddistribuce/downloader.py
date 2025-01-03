@@ -51,6 +51,13 @@ def parse_HDO(self, jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_p
 
     for itemData in output_hdo_dict:
         current_year = datetime.now().year
+        od_year = int(itemData['od']['rok'])
+
+        # Pokud je rok 'od' menší než aktuální rok, použij nižší rok pro zpracování
+        if od_year < current_year:
+            current_year = current_year - 1
+        else:
+            current_year = current_year
 
         if int(itemData['od']['rok']) == 9999:
             # year 9999 could mean this year, next year, maybe even the previous year
