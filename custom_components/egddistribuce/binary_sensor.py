@@ -1,4 +1,4 @@
-__version__ = "0.3"
+__version__ = "0.4"
 
 import logging
 from . import downloader
@@ -22,6 +22,7 @@ CONF_DP = "code_dp"
 CONF_NAME = "name"
 CONF_PRICE_NT = 'price_nt'
 CONF_PRICE_VT = 'price_vt'
+CONF_ID = "id"
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
@@ -31,7 +32,8 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Optional(CONF_B): cv.string,
         vol.Optional(CONF_DP): cv.string,
         vol.Optional(CONF_PRICE_NT): cv.string,
-        vol.Optional(CONF_PRICE_VT): cv.string
+        vol.Optional(CONF_PRICE_VT): cv.string,
+        vol.Optional(CONF_ID): cv.string,
     }
 )
 
@@ -81,14 +83,15 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     codeDP = config.get(CONF_DP)
     priceNT = config.get(CONF_PRICE_NT)
     priceVT = config.get(CONF_PRICE_VT)
+    entity_id = config.get(CONF_ID)
 
-    add_entities([EgdDistribuce(name, psc, codeA, codeB, codeDP, priceNT, priceVT)])
+    add_entities([EgdDistribuce(name, entity_id, psc, codeA, codeB, codeDP, priceNT, priceVT)])
 
 
 class EgdDistribuce(BinarySensorEntity):
-    def __init__(self, name, psc, codeA, codeB, codeDP, priceNT, priceVT):
-        """Initialize the sensor."""
+    def __init__(self, name, entity_id, psc, codeA, codeB, codeDP, priceNT, priceVT):
         self._name = name
+        self._unique_id = entity_id  # přímo z YAML
         self.psc = psc
         self.codeA = codeA
         self.codeB = codeB
@@ -106,6 +109,10 @@ class EgdDistribuce(BinarySensorEntity):
         self.priceNT = priceNT if priceNT is not None else 0
         self.priceVT = priceVT if priceVT is not None else 0
 
+    @property
+    def unique_id(self):
+        return self._unique_id
+        
     @property
     def name(self):
         return self._name
