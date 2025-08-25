@@ -8,6 +8,8 @@ import logging
 
 _LOGGER = logging.getLogger(__name__)
 
+cz_holidays = holidays.CZ()
+
 def get_region():
     return "https://hdo.distribuce24.cz/region"
 
@@ -52,7 +54,6 @@ def parse_HDO(jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_priceVT
     date_tomorrow = datetime.now().date() + timedelta(days=1)
 
     def get_holiday(date):
-        cz_holidays = holidays.CZ()
         return (date in cz_holidays)
 
     for itemData in output_hdo_dict:
@@ -125,3 +126,4 @@ def parse_HDO(jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_priceVT
             HDO_HOURLY[date] = float(HDO_priceVT)
     
     return HDO_Status, HDO_Cas_Od, HDO_Cas_Do, HDO_HOURLY, price, HDO_Cas_Od_zitra, HDO_Cas_Do_zitra
+
