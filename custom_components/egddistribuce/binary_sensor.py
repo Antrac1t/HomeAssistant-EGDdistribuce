@@ -73,7 +73,7 @@ class HDOManager:
             remaining_hours = remaining_time.seconds // 3600
             remaining_minutes = (remaining_time.seconds % 3600) // 60
             
-            return f"{remaining_hours}h {remaining_minutes}m"
+            return f"{remaining_hours}:{remaining_minutes}"
 
         # 2. Pokud se pro dnešek nic nenašlo, kontrolujeme zítřek
         if self.HDO_Cas_Od_zitra:
@@ -87,7 +87,7 @@ class HDOManager:
             remaining_hours = remaining_time.days * 24 + remaining_time.seconds // 3600
             remaining_minutes = (remaining_time.seconds % 3600) // 60
             
-            return f"{remaining_hours}h {remaining_minutes}m (zítra)"
+            return f"{remaining_hours}:{remaining_minutes}"
             
         return "Není dostupný žádný další čas VT/NT"
 
@@ -210,3 +210,4 @@ class EgdDistribuce(BinarySensorEntity):
         for i, start_time in enumerate(od_list):
             timeReport.append(f'{start_time.replace(":00", "")} - {do_list[i].replace(":00", "")}')
         return ', '.join(timeReport)
+
