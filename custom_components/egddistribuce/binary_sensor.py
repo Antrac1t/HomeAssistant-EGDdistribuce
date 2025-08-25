@@ -1,16 +1,14 @@
-__version__ = "0.4"
-
 import logging
 from . import downloader
 import voluptuous as vol
 from datetime import datetime, timedelta
-from homeassistant.components.sensor import PLATFORM_SCHEMA
+from homeassistant.components.binary_sensor import PLATFORM_SCHEMA, BinarySensorEntity
 import homeassistant.helpers.config_validation as cv
-from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.util import Throttle
 import requests
+from typing import Dict
 
-
+# --- Konstanty pro konfiguraci ---
 MIN_TIME_BETWEEN_SCANS = timedelta(seconds=300)
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,6 +22,7 @@ CONF_PRICE_NT = 'price_nt'
 CONF_PRICE_VT = 'price_vt'
 CONF_ID = "id"
 
+# Definice konfiguračního schématu
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Required(CONF_NAME): cv.string,
@@ -37,20 +36,26 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     }
 )
 
+# --- Vylepšená třída HDOManager s logikou pro zítřek ---
 class HDOManager:
-    def __init__(self, HDO_Cas_Od, HDO_Cas_Do):
+    def __init__(self, HDO_Cas_Od, HDO_Cas_Do, HDO_Cas_Od_zitra, HDO_Cas_Do_zitra):
         self.HDO_Cas_Od = HDO_Cas_Od
         self.HDO_Cas_Do = HDO_Cas_Do
+        self.HDO_Cas_Od_zitra = HDO_Cas_Od_zitra
+        self.HDO_Cas_Do_zitra = HDO_Cas_Do_zitra
 
     def get_remaining_time(self):
-        current_time = datetime.now().time()  # Pouze čas
+        current_datetime = datetime.now()
+        current_time = current_datetime.time()
+        
         schedule = []
-        print(current_time)
+
+        # 1. Kontrola dnešních časů
         for start_time_str, end_time_str in zip(self.HDO_Cas_Od, self.HDO_Cas_Do):
             try:
                 start_time = datetime.strptime(start_time_str, "%H:%M:%S").time()
                 end_time = datetime.strptime(end_time_str, "%H:%M:%S").time()
-            except ValueError as e:
+            except ValueError:
                 continue
 
             if current_time < start_time:
@@ -58,23 +63,36 @@ class HDOManager:
             elif start_time <= current_time < end_time:
                 schedule.append((current_time, end_time))
 
-        if not schedule:
-            return "Není dostupný žádný další čas VT/NT"
+        if schedule:
+            first_start, first_end = schedule[0]
+            if current_time < first_start:
+                remaining_time = datetime.combine(current_datetime.date(), first_start) - current_datetime
+            else:
+                remaining_time = datetime.combine(current_datetime.date(), first_end) - current_datetime
+            
+            remaining_hours = remaining_time.seconds // 3600
+            remaining_minutes = (remaining_time.seconds % 3600) // 60
+            
+            return f"{remaining_hours}h {remaining_minutes}m"
 
-        first_start, first_end = schedule[0]
+        # 2. Pokud se pro dnešek nic nenašlo, kontrolujeme zítřek
+        if self.HDO_Cas_Od_zitra:
+            first_tomorrow_start_str = self.HDO_Cas_Od_zitra[0]
+            first_tomorrow_start_time = datetime.strptime(first_tomorrow_start_str, "%H:%M:%S").time()
+            
+            tomorrow_start_datetime = datetime.combine(current_datetime.date() + timedelta(days=1), first_tomorrow_start_time)
+            
+            remaining_time = tomorrow_start_datetime - current_datetime
+            
+            remaining_hours = remaining_time.days * 24 + remaining_time.seconds // 3600
+            remaining_minutes = (remaining_time.seconds % 3600) // 60
+            
+            return f"{remaining_hours}h {remaining_minutes}m (zítra)"
+            
+        return "Není dostupný žádný další čas VT/NT"
 
-        if current_time < first_start:
-            remaining_time = datetime.combine(datetime.today(), first_start) - datetime.combine(datetime.today(), current_time)
-        else:
-            remaining_time = datetime.combine(datetime.today(), first_end) - datetime.combine(datetime.today(), current_time)
 
-        remaining_hours = remaining_time.seconds // 3600
-        remaining_minutes = (remaining_time.seconds % 3600) // 60
-
-        return f"{remaining_hours}h {remaining_minutes}m"
-
-
-
+# --- Home Assistant platform setup ---
 def setup_platform(hass, config, add_entities, discovery_info=None):
     name = config.get(CONF_NAME)
     psc = config.get(CONF_PSC)
@@ -87,27 +105,29 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
     add_entities([EgdDistribuce(name, entity_id, psc, codeA, codeB, codeDP, priceNT, priceVT)])
 
-
+# --- Hlavní třída senzoru pro Home Assistant ---
 class EgdDistribuce(BinarySensorEntity):
     def __init__(self, name, entity_id, psc, codeA, codeB, codeDP, priceNT, priceVT):
         self._name = name
-        self._unique_id = entity_id  # přímo z YAML
+        self._unique_id = entity_id
         self.psc = psc
         self.codeA = codeA
         self.codeB = codeB
         self.codeDP = codeDP
-        self.responseRegionJson = "[]"
-        self.responseHDOJson = "[]"
-        self.region = "[]"
-        self.status = False
-        self.HDO_Cas_Od = []
-        self.HDO_Cas_Do = []
-        self.update()
-        self._attributes = {}
-        self.hdo_manager = HDOManager(self.HDO_Cas_Od, self.HDO_Cas_Do)
-
         self.priceNT = priceNT if priceNT is not None else 0
         self.priceVT = priceVT if priceVT is not None else 0
+        
+        self.last_update_success = False
+        self.HDO_Cas_Od = []
+        self.HDO_Cas_Do = []
+        self.HDO_Cas_Od_zitra = []
+        self.HDO_Cas_Do_zitra = []
+        self.HDO_HOURLY: Dict[datetime, float] = {}
+        self.region = "[]"
+        self.price = 0
+        self.status = False
+        self.hdo_manager = None
+        self._attributes = {}
 
     @property
     def unique_id(self):
@@ -119,25 +139,18 @@ class EgdDistribuce(BinarySensorEntity):
 
     @property
     def icon(self):
-        return "mdi:transmission-tower" if self.status else "mdi:power-off"
+        return "mdi:transmission-tower" if self.is_on else "mdi:power-off"
 
     @property
     def is_on(self):
-        self.status, self.HDO_Cas_Od, self.HDO_Cas_Do, self.HDO_HOURLY, self.price = downloader.parse_HDO(
-            self, self.responseHDOJson, self.region, self.codeA, self.codeB, self.codeDP, self.priceNT, self.priceVT)
+        """Vrací stav senzoru (True pokud je HDO aktivní, jinak False)."""
         return self.status
 
     @property
     def extra_state_attributes(self):
-        return {
-            'HDO_HOURLY': self.HDO_HOURLY,
-            'HDO Times': self.get_times(),
-            'HDO_Cas_Od': self.HDO_Cas_Od,
-            'HDO_Cas_Do': self.HDO_Cas_Do,
-            'current_price': self.price,
-            'remaining_time': self.hdo_manager.get_remaining_time()
-        }
-
+        """Vrací další atributy pro senzor."""
+        return self._attributes
+    
     @property
     def should_poll(self):
         return True
@@ -146,30 +159,54 @@ class EgdDistribuce(BinarySensorEntity):
     def available(self):
         return self.last_update_success
 
-    @property
-    def device_class(self):
-        return 'monetary'
-
-    @property
-    def unit_of_measurement(self):
-        return 'Kč/kWh'
-
-    def get_times(self):
-        timeReport = []
-        for i, start_time in enumerate(self.HDO_Cas_Od):
-            timeReport.append(f'{start_time.replace(":00", "")} - {self.HDO_Cas_Do[i].replace(":00", "")}')
-        return ', '.join(timeReport)
-
     @Throttle(MIN_TIME_BETWEEN_SCANS)
     def update(self):
-        responseRegion = requests.get(downloader.get_region(), verify=True)
-        if responseRegion.status_code == 200:
+        """Aktualizuje data z EGD API a nastavuje stav senzoru."""
+        _LOGGER.info("Starting update for EGD HDO sensor.")
+        try:
+            responseRegion = requests.get(downloader.get_region(), verify=True)
+            responseRegion.raise_for_status()
             self.responseRegionJson = responseRegion.json()
             self.region = downloader.parse_region(self.responseRegionJson, self.psc)
+            
             responseHDO = requests.get(downloader.get_HDO(), verify=True)
-            if responseHDO.status_code == 200:
-                self.responseHDOJson = responseHDO.json()
-                self.hdo_manager = HDOManager(self.HDO_Cas_Od, self.HDO_Cas_Do)
-                self.last_update_success = True
-        else:
+            responseHDO.raise_for_status()
+            self.responseHDOJson = responseHDO.json()
+            
+            (
+                self.status, 
+                self.HDO_Cas_Od, 
+                self.HDO_Cas_Do, 
+                self.HDO_HOURLY, 
+                self.price, 
+                self.HDO_Cas_Od_zitra, 
+                self.HDO_Cas_Do_zitra
+            ) = downloader.parse_HDO(
+                self.responseHDOJson, self.region, self.codeA, self.codeB, self.codeDP, self.priceNT, self.priceVT
+            )
+            
+            self.hdo_manager = HDOManager(self.HDO_Cas_Od, self.HDO_Cas_Do, self.HDO_Cas_Od_zitra, self.HDO_Cas_Do_zitra)
+            
+            # Naplnění atributů
+            self._attributes = {
+                'HDO_HOURLY': self.HDO_HOURLY,
+                'HDO Times': self.get_times(self.HDO_Cas_Od, self.HDO_Cas_Do),
+                'HDO_Times_Tomorrow': self.get_times(self.HDO_Cas_Od_zitra, self.HDO_Cas_Do_zitra),
+                'HDO_Cas_Od': self.HDO_Cas_Od,
+                'HDO_Cas_Do': self.HDO_Cas_Do,
+                'current_price': self.price,
+                'remaining_time': self.hdo_manager.get_remaining_time()
+            }
+            
+            self.last_update_success = True
+            _LOGGER.info("EGD HDO sensor updated successfully.")
+            
+        except (requests.exceptions.RequestException, ValueError) as e:
+            _LOGGER.error(f"Error updating EGD sensor: {e}")
             self.last_update_success = False
+
+    def get_times(self, od_list, do_list):
+        timeReport = []
+        for i, start_time in enumerate(od_list):
+            timeReport.append(f'{start_time.replace(":00", "")} - {do_list[i].replace(":00", "")}')
+        return ', '.join(timeReport)
