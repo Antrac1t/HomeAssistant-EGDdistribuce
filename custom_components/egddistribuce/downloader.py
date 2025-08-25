@@ -91,6 +91,14 @@ def parse_HDO(jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_priceVT
                         for times in days['casy']:
                             HDO_Cas_Od_zitra.append(times['od'])
                             HDO_Cas_Do_zitra.append(times['do'])
+
+    today_pairs = sorted(zip(HDO_Cas_Od, HDO_Cas_Do))
+    HDO_Cas_Od = [p[0] for p in today_pairs]
+    HDO_Cas_Do = [p[1] for p in today_pairs]
+    
+    tomorrow_pairs = sorted(zip(HDO_Cas_Od_zitra, HDO_Cas_Do_zitra))
+    HDO_Cas_Od_zitra = [p[0] for p in tomorrow_pairs]
+    HDO_Cas_Do_zitra = [p[1] for p in tomorrow_pairs]
     
     def get_status(time_to_check: datetime, od: list, do: list):
         result = False
@@ -126,4 +134,5 @@ def parse_HDO(jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_priceVT
             HDO_HOURLY[date] = float(HDO_priceVT)
     
     return HDO_Status, HDO_Cas_Od, HDO_Cas_Do, HDO_HOURLY, price, HDO_Cas_Od_zitra, HDO_Cas_Do_zitra
+
 
