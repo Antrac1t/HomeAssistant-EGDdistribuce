@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, time
 import holidays
 from typing import Dict
 import logging
-
+from zoneinfo import ZoneInfo
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,6 +39,8 @@ def parse_HDO(jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_priceVT
     HDO_HOURLY: Dict[datetime, float] = {}
     HDO_Status = False
     price = HDO_priceVT
+
+    zoneinfo = ZoneInfo(self.hass.config.time_zone)
 
     if HDORegion is None:
         _LOGGER.error("Region is None. Cannot parse HDO data.")
@@ -119,20 +121,31 @@ def parse_HDO(jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_priceVT
     if HDO_Status:
         price = HDO_priceNT
 
-    for x in range(0, 24*4):
-        date = datetime.combine(date_now, time=time(hour=0)) + timedelta(minutes=x*15)
-        if get_status(date, HDO_Cas_Od, HDO_Cas_Do):
-            HDO_HOURLY[date] = float(HDO_priceNT)
-        else:
-            HDO_HOURLY[date] = float(HDO_priceVT)
+    for x in range(0, (24*4)):
+        date = datetime.combine(date_now, time=time(
+            hour=0)) + timedelta(minutes=x*15)
 
-    for x in range(0, 24*4):
-        date = datetime.combine(date_tomorrow, time=time(hour=0)) + timedelta(minutes=x*15)
-        if get_status(date, HDO_Cas_Od_zitra, HDO_Cas_Do_zitra):
-            HDO_HOURLY[date] = float(HDO_priceNT)
+        dateIso = (datetime.combine(date_now, time=time(
+            hour=0), tzinfo=zoneinfo) + timedelta(minutes=x*15))
+
+        if get_status(date, HDO_Cas_Od, HDO_Cas_Do):
+            HDO_HOURLY[dateIso] = float(HDO_priceNT)
         else:
-            HDO_HOURLY[date] = float(HDO_priceVT)
+            HDO_HOURLY[dateIso] = float(HDO_priceVT)
+
+    for x in range(0, (24*4)):
+        date = datetime.combine(date_tomorrow, time=time(
+            hour=0)) + timedelta(minutes=x*15)
+
+        dateIso = (datetime.combine(date_tomorrow, time=time(
+            hour=0), tzinfo=zoneinfo) + timedelta(minutes=x*15))
+
+        if get_status(date, HDO_Cas_Od_zitra, HDO_Cas_Do_zitra):
+            HDO_HOURLY[dateIso] = float(HDO_priceNT)
+        else:
+            HDO_HOURLY[dateIso] = float(HDO_priceVT)
     
     return HDO_Status, HDO_Cas_Od, HDO_Cas_Do, HDO_HOURLY, price, HDO_Cas_Od_zitra, HDO_Cas_Do_zitra
+
 
 
