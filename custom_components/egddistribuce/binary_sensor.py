@@ -181,7 +181,7 @@ class EgdDistribuce(BinarySensorEntity):
                 self.price, 
                 self.HDO_Cas_Od_zitra, 
                 self.HDO_Cas_Do_zitra
-            ) = downloader.parse_HDO(
+            ) = downloader.parse_HDO( self,
                 self.responseHDOJson, self.region, self.codeA, self.codeB, self.codeDP, self.priceNT, self.priceVT
             )
             
@@ -210,4 +210,5 @@ class EgdDistribuce(BinarySensorEntity):
         for i, start_time in enumerate(od_list):
             timeReport.append(f'{start_time.replace(":00", "")} - {do_list[i].replace(":00", "")}')
         return ', '.join(timeReport)
+
 
