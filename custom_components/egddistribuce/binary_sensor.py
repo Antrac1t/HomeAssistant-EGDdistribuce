@@ -211,4 +211,3 @@ class EgdDistribuce(BinarySensorEntity):
             timeReport.append(f'{start_time.replace(":00", "")} - {do_list[i].replace(":00", "")}')
         return ', '.join(timeReport)
 
-
