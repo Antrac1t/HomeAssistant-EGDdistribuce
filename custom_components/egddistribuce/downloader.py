@@ -31,7 +31,7 @@ def parse_region(jsonRegion, psc):
         region = unique_region_list[0]
     return region
 
-def parse_HDO(jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_priceVT):
+def parse_HDO(self, jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_priceVT):
     HDO_Cas_Od = []
     HDO_Cas_Do = []
     HDO_Cas_Od_zitra = []
@@ -146,6 +146,5 @@ def parse_HDO(jsonHDO, HDORegion, HDO_A, HDO_B, HDO_DP, HDO_priceNT, HDO_priceVT
             HDO_HOURLY[dateIso] = float(HDO_priceVT)
     
     return HDO_Status, HDO_Cas_Od, HDO_Cas_Do, HDO_HOURLY, price, HDO_Cas_Od_zitra, HDO_Cas_Do_zitra
-
 
 
