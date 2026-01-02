@@ -29,7 +29,7 @@ _LOGGER = logging.getLogger(__name__)
 API_REGION_URL = "https://hdo.distribuce24.cz/region"
 API_HDO_URL = "https://hdo.distribuce24.cz/casy"
 
-UPDATE_INTERVAL = timedelta(minutes=15)
+UPDATE_INTERVAL = timedelta(minutes=2)
 
 
 class EGDDistribuceCoordinator(DataUpdateCoordinator):
