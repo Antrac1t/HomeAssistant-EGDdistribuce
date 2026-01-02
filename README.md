@@ -29,13 +29,13 @@ Určeno pro tradiční elektroměry využívající kombinaci kódů **A**, **B*
 <img width="374" height="520" alt="{979A28CA-203C-4525-9FDA-A4E91B822A24}" src="https://github.com/user-attachments/assets/db250379-8005-4ab9-9c59-25ac94e1c3dc" />
 
 
-### 1. HDO Povel 
+### 2. HDO Povel 
 Pro elektroměry s více HDO příkazy (např. různá relé pro ohřev vody, topení, atd.)
 
 <img width="420" height="358" alt="{233DD523-A860-4603-9319-67E76AAD0670}" src="https://github.com/user-attachments/assets/fa2f0dd6-c954-4751-9dbf-f1e0f8fe7f8a" />
 
 
-### 1. Smart Metr
+### 3. Smart Metr
 Chytré měřiče s speciálními kódy (Cd56, C55, D56, atd.).
 
 <img width="369" height="285" alt="{5318E21B-E07E-4027-9F58-1EB70C4AD57E}" src="https://github.com/user-attachments/assets/199e8b00-66e3-4318-8b52-c2a9265d61ba" />
@@ -56,7 +56,43 @@ Chytré měřiče s speciálními kódy (Cd56, C55, D56, atd.).
 -  Validace Dat - Automatické ověření platnosti PSČ a HDO kódů
 
 
-Codes are sometimes printed on you energy meter, or you can find them on your egd.cz
+
+## Instalace
+
+### Možnost 1: Přes HACS (Doporučeno)
+1. Ujistěte se, že máte nainstalovaný [HACS](https://hacs.xyz/)6. Restart Home Assistant
+
+2. Jděte do HACS → Integrace
+
+3. Klikněte na menu (⋮) vpravo nahoře → Vlastní repozitáře
+
+4. Přidejte tuto URL: `https://github.com/Antrac1t/HomeAssistant-EGDdistribuce`
+
+5. Klikněte Instalovat.
+
+6. Restartujte Home Assistant
+
+3. Restartujte Home Assistant
+
+### Možnost 2: Manuálně
+1. Stáhněte nejnovější release
+
+2. Zkopírujte složku `custom_components/egddistribuce` do vaší složky `config/custom_components/
+
+3. Restartujte Home Assistant
+
+
+
+##  Konfigurace
+
+1. Jděte na **Nastavení** → **Zařízení a služby** 
+
+2. Klikněte **+ Přidat integraci**   
+
+3. Vyhledejte "**EGD Distribuce**" 
+
+4. **Vyberte typ konfigurace:**   
+
 
 You can show them in a graph, with other entities, for example spot prices from Czech Energy Spot Prices (https://github.com/rnovacek/homeassistant_cz_energy_spot_prices):
 
