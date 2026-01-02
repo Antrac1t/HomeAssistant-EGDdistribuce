@@ -2,12 +2,12 @@
   "domain": "egddistribuce",
   "name": "EGD Distribuce",
   "codeowners": ["@Antrac1t"],
-  "config_flow": false,
+  "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce/issues",
   "quality_scale": "silver",
-  "requirements": [],
-  "version": "0.5"
+  "requirements": ["aiohttp", "holidays"],
+  "version": "0.6.0"
 }
