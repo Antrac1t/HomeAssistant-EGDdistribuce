@@ -1,0 +1,88 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "HDO Configuration Type",
+        "description": "Select your HDO measurement type",
+        "data": {
+          "config_type": "Configuration type"
+        }
+      },
+      "classic": {
+        "title": "Classic HDO (A+B+DP)",
+        "description": "Enter your postal code and A, B, DP codes from your electricity meter",
+        "data": {
+          "psc": "Postal code",
+          "code_a": "Code A (1-9)",
+          "code_b": "Code B (1-9)",
+          "code_dp": "Code DP (01-16)",
+          "price_vt": "High tariff price (CZK/kWh)",
+          "price_nt": "Low tariff price (CZK/kWh)"
+        }
+      },
+      "hdo_codes": {
+        "title": "HDO Commands (codes)",
+        "description": "Enter your postal code and HDO codes separated by comma (e.g. 405,406,410)",
+        "data": {
+          "psc": "Postal code",
+          "hdo_code": "HDO codes (comma-separated)",
+          "price_vt": "High tariff price (CZK/kWh)",
+          "price_nt": "Low tariff price (CZK/kWh)"
+        },
+        "data_description": {
+          "hdo_code": "Example: 405,406,410 or just 405"
+        }
+      },
+      "smart": {
+        "title": "Smart Meter",
+        "description": "Enter your smart meter code (e.g. Cd56)",
+        "data": {
+          "hdo_code": "Smart meter code",
+          "price_vt": "High tariff price (CZK/kWh)",
+          "price_nt": "Low tariff price (CZK/kWh)"
+        },
+        "data_description": {
+          "hdo_code": "Example: Cd56, C55, D56"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to EGD Distribuce API",
+      "invalid_psc": "Postal code not found in EGD database",
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "This configuration is already set up"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Adjust Settings",
+        "description": "Change electricity prices for cost calculation",
+        "data": {
+          "price_vt": "High tariff price (CZK/kWh)",
+          "price_nt": "Low tariff price (CZK/kWh)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "hdo_status": {
+        "name": "HDO Status"
+      }
+    },
+    "sensor": {
+      "current_price": {
+        "name": "Current Price"
+      },
+      "remaining_time": {
+        "name": "Remaining Time"
+      },
+      "next_change": {
+        "name": "Next Change"
+      }
+    }
+  }
+}
