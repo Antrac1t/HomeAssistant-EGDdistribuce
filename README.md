@@ -26,16 +26,19 @@ Integrace podporuje jak **klasické elektroměry**, tak **smart měření**, a j
 
 ### 1. Klasické HDO (A + B + DP)
 Určeno pro tradiční elektroměry využívající kombinaci kódů **A**, **B** a **DP**.
+
 <img width="374" height="520" alt="{979A28CA-203C-4525-9FDA-A4E91B822A24}" src="https://github.com/user-attachments/assets/db250379-8005-4ab9-9c59-25ac94e1c3dc" />
 
 
 ### 1. HDO Povel 
 Možnost sledování více HDO příkazů současně (např. 405, 406, 410).
+
 <img width="420" height="358" alt="{233DD523-A860-4603-9319-67E76AAD0670}" src="https://github.com/user-attachments/assets/fa2f0dd6-c954-4751-9dbf-f1e0f8fe7f8a" />
 
 
 ### 1. Smart Metr
 Chytré měřiče s speciálními kódy (Cd56, C55, D56, atd.).
+
 <img width="369" height="285" alt="{5318E21B-E07E-4027-9F58-1EB70C4AD57E}" src="https://github.com/user-attachments/assets/199e8b00-66e3-4318-8b52-c2a9265d61ba" />
 
 
