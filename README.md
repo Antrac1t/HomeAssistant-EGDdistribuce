@@ -48,7 +48,7 @@ Chytré měřiče s speciálními kódy (Cd56, C55, D56, atd.).
 
   - Příští HDO časový slot## Installation
 
--  Automatické Aktualizace - Data se obnovují každých 15 minut
+-  Automatické Aktualizace - Data se obnovují každé 2 minuty
 
 -  Detailní Atributy - Časy dnes/zítra, začátky, konce, region, ceny
 
