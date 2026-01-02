@@ -2,79 +2,50 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
 
-This sensor is downloading json data from EGD webpage. The integration needs the **postal code** and the **HDO code** (A,B,DP). These information can be checked on EGD web site https://www.egd.cz/casy-platnosti-nizkeho-tarifu.
-The **postal code** and the **HDO code** have to be defined in configuration.yaml
+Integrace pro Home Assistant sloužící ke stahování **HDO (Hromadné dálkové ovládání)** dat z API **EG.D Distribuce**.  
+Umožňuje sledovat období **nízkého (NT)** a **vysokého tarifu (VT)** elektřiny v České republice.
 
-This sensor shows
+Integrace podporuje jak **klasické elektroměry**, tak **smart měření**, a je plně konfigurovatelná přes **grafické rozhraní Home Assistantu (GUI)**.
 
-- current state of HDO
-- remaining time to change status
+---
 
-## Installation
+## Funkce
 
-### Step 1: Download files
+- Konfigurace přes GUI (není potřeba YAML)
+- Moderní async architektura (DataUpdateCoordinator)
+- Automatická aktualizace dat
+- Podpora více typů HDO měření
+- Podpora klasických i smart elektroměrů
+- Detailní atributy pro automatizace a grafy
+- Validace zadaných PSČ a HDO kódů
 
-#### Option 1: Via HACS
+---
 
-Make sure you have HACS installed. If you don't, run `curl -sfSL https://hacs.xyz/install | bash -` in HA.
-Then choose Components under HACS. Choose the menu in the upper right, and select Custom repositories. Then add this repo's URL. You should be able to choose to Install now.
+## Podporované typy HDO
 
-#### Option 2: Manual
+### 1. Klasické HDO (A + B + DP)
+Určeno pro tradiční elektroměry využívající kombinaci kódů **A**, **B** a **DP**.
 
-Clone this repository or download the source code as a zip file and add/merge the `custom_components/` folder with its contents in your configuration directory.
+### 1. HDO Povel 
+Možnost sledování více HDO příkazů současně (např. 405, 406, 410).
 
-### Step 2: Configure
+### 1. Smart Metr
+Chytré měřiče s speciálními kódy (Cd56, C55, D56, atd.)  :
 
-Add the following to your `configuration.yaml` file:
 
-```yaml
-# HDO example for D57d tarif - you can create multiple binary sensors (A3B7P1 A3B7P2 A3B7P6)
-# Split `A3B7P01` into  A3 -> 3, B7 -> 7, P01 -> 01
-binary_sensor:
-  - platform: egddistribuce
-    name: egdTAR
-    psc: 60200
-    code_a: "3"
-    code_b: "7"
-    code_dp: "01"
-    price_vt: "2.11469"
-    price_nt: "0.24611"
+## 🎯 Funkce
+  - Aktuální cena elektřiny- 🎯 **Smart Meter Support** - Works with both traditional and smart meters
 
-  - platform: egddistribuce
-    name: egdPV
-    psc: 60200
-    code_a: "3"
-    code_b: "7"
-    code_dp: "02"
-    price_vt: "2.11469"
-    price_nt: "0.24611"
+  - Zbývající čas do změny tarifu
 
-  - platform: egddistribuce
-    name: egdTUV
-    psc: 60200
-    code_a: "3"
-    code_b: "7"
-    code_dp: "06"
-    price_vt: "2.11469"
-    price_nt: "0.24611"
+  - Příští HDO časový slot## Installation
 
-# HDO example for smart meter with code `d57`, used in graph
-binary_sensor:
-  - platform: egddistribuce
-    name: hdo
-    psc: "smart"
-    code_a: "d57"
-    price_vt: "2.11469"
-    price_nt: "0.24611"
+-  Automatické Aktualizace - Data se obnovují každých 15 minut
 
-# current HDO price
-template:
-  - sensor:
-      - name: "cena_distribuce_eg_d"
-        unit_of_measurement: "Kč/kWh"
-        state_class: measurement
-        state: "{{ state_attr('binary_sensor.hdo', 'current_price')}}"
-```
+-  Detailní Atributy - Časy dnes/zítra, začátky, konce, region, ceny
+
+-  Validace Dat - Automatické ověření platnosti PSČ a HDO kódů
+
 
 Codes are sometimes printed on you energy meter, or you can find them on your egd.cz
 
