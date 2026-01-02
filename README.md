@@ -22,7 +22,6 @@ Integrace podporuje jak **klasické elektroměry**, tak **smart měření**, a j
 ---
 
 ## Podporované typy HDO
-<img width="373" height="372" alt="{EFBEC61D-F4EE-42EF-9AB0-5AA49CDD3C9C}" src="https://github.com/user-attachments/assets/8cf13d7e-9dbd-4985-8528-ea8559f9952e" />
 
 ### 1. Klasické HDO (A + B + DP)
 Určeno pro tradiční elektroměry využívající kombinaci kódů **A**, **B** a **DP**.
@@ -60,7 +59,7 @@ Chytré měřiče s speciálními kódy (Cd56, C55, D56, atd.).
 ## Instalace
 
 ### Možnost 1: Přes HACS (Doporučeno)
-1. Ujistěte se, že máte nainstalovaný [HACS](https://hacs.xyz/)6. Restart Home Assistant
+1. Ujistěte se, že máte nainstalovaný [HACS](https://hacs.xyz/)
 
 2. Jděte do HACS → Integrace
 
@@ -72,7 +71,6 @@ Chytré měřiče s speciálními kódy (Cd56, C55, D56, atd.).
 
 6. Restartujte Home Assistant
 
-3. Restartujte Home Assistant
 
 ### Možnost 2: Manuálně
 1. Stáhněte nejnovější release
@@ -92,7 +90,7 @@ Chytré měřiče s speciálními kódy (Cd56, C55, D56, atd.).
 3. Vyhledejte "**EGD Distribuce**" 
 
 4. **Vyberte typ konfigurace:**   
-
+<img width="373" height="372" alt="{EFBEC61D-F4EE-42EF-9AB0-5AA49CDD3C9C}" src="https://github.com/user-attachments/assets/8cf13d7e-9dbd-4985-8528-ea8559f9952e" />
 
 You can show them in a graph, with other entities, for example spot prices from Czech Energy Spot Prices (https://github.com/rnovacek/homeassistant_cz_energy_spot_prices):
 
