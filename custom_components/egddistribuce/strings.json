@@ -1,0 +1,88 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Typ HDO konfigurace",
+        "description": "Vyberte typ vašeho HDO měření",
+        "data": {
+          "config_type": "Typ konfigurace"
+        }
+      },
+      "classic": {
+        "title": "Klasické HDO (A+B+DP)",
+        "description": "Zadejte PSČ a kódy A, B, DP z vašeho elektroměru",
+        "data": {
+          "psc": "PSČ",
+          "code_a": "Kód A (1-9)",
+          "code_b": "Kód B (1-9)",
+          "code_dp": "Kód DP (01-16)",
+          "price_vt": "Cena VT (vysoký tarif) Kč/kWh",
+          "price_nt": "Cena NT (nízký tarif) Kč/kWh"
+        }
+      },
+      "hdo_codes": {
+        "title": "HDO příkazy (kódy)",
+        "description": "Zadejte PSČ a HDO kódy oddělené čárkou (např. 405,406,410)",
+        "data": {
+          "psc": "PSČ",
+          "hdo_code": "HDO kódy (oddělené čárkou)",
+          "price_vt": "Cena VT (vysoký tarif) Kč/kWh",
+          "price_nt": "Cena NT (nízký tarif) Kč/kWh"
+        },
+        "data_description": {
+          "hdo_code": "Příklad: 405,406,410 nebo jen 405"
+        }
+      },
+      "smart": {
+        "title": "Smart metr",
+        "description": "Zadejte kód vašeho chytrého měřiče (např. Cd56)",
+        "data": {
+          "hdo_code": "Kód smart metru",
+          "price_vt": "Cena VT (vysoký tarif) Kč/kWh",
+          "price_nt": "Cena NT (nízký tarif) Kč/kWh"
+        },
+        "data_description": {
+          "hdo_code": "Příklad: Cd56, C55, D56"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nepodařilo se připojit k API EGD Distribuce",
+      "invalid_psc": "PSČ nenalezeno v databázi EGD",
+      "unknown": "Neočekávaná chyba"
+    },
+    "abort": {
+      "already_configured": "Tato konfigurace je již nastavena"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Úprava nastavení",
+        "description": "Změňte ceny elektřiny pro výpočet nákladů",
+        "data": {
+          "price_vt": "Cena VT (vysoký tarif) Kč/kWh",
+          "price_nt": "Cena NT (nízký tarif) Kč/kWh"
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "hdo_status": {
+        "name": "HDO stav"
+      }
+    },
+    "sensor": {
+      "current_price": {
+        "name": "Aktuální cena"
+      },
+      "remaining_time": {
+        "name": "Zbývající čas"
+      },
+      "next_change": {
+        "name": "Příští změna"
+      }
+    }
+  }
+}
