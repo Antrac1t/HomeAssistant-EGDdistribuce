@@ -22,19 +22,22 @@ Integrace podporuje jak **klasické elektroměry**, tak **smart měření**, a j
 ---
 
 ## Podporované typy HDO
+<img width="373" height="372" alt="{EFBEC61D-F4EE-42EF-9AB0-5AA49CDD3C9C}" src="https://github.com/user-attachments/assets/8cf13d7e-9dbd-4985-8528-ea8559f9952e" />
 
 ### 1. Klasické HDO (A + B + DP)
 Určeno pro tradiční elektroměry využívající kombinaci kódů **A**, **B** a **DP**.
+<img width="378" height="653" alt="{C6E3D57D-3510-472F-BADB-ED861CB8F567}" src="https://github.com/user-attachments/assets/6d54d3a9-c56b-4841-810b-be0db78027a4" />
 
 ### 1. HDO Povel 
 Možnost sledování více HDO příkazů současně (např. 405, 406, 410).
+<img width="435" height="498" alt="{806B3D20-0EF6-448D-AF6A-D48B8B1A0EEC}" src="https://github.com/user-attachments/assets/dfcf8947-0936-4ab5-af6f-706b8b274bc7" />
 
 ### 1. Smart Metr
 Chytré měřiče s speciálními kódy (Cd56, C55, D56, atd.)  :
-
+<img width="368" height="418" alt="{78051812-5CA0-4D34-879C-BC40AC2F5238}" src="https://github.com/user-attachments/assets/a67a97e3-3af8-40ae-80cd-ec1860460d68" />
 
 ## 🎯 Funkce
-  - Aktuální cena elektřiny- 🎯 **Smart Meter Support** - Works with both traditional and smart meters
+  - Aktuální cena elektřiny
 
   - Zbývající čas do změny tarifu
 
