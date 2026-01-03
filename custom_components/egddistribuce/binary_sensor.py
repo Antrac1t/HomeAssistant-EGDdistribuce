@@ -99,6 +99,8 @@ class EGDDistribuceBinarySensor(CoordinatorEntity[EGDDistribuceCoordinator], Bin
             "region": self.coordinator.data.get("region", "N/A"),
             "price_vt": self.coordinator.price_vt,
             "price_nt": self.coordinator.price_nt,
+            "color_vt": self.coordinator.color_vt,
+            "color_nt": self.coordinator.color_nt,
             "HDO_HOURLY": self.coordinator.data.get("HDO_HOURLY", {}),
         }
 
