@@ -18,6 +18,7 @@ Integrace podporuje jak **klasické elektroměry**, tak **smart měření**, a j
 - Podpora klasických i smart elektroměrů
 - Detailní atributy pro automatizace a grafy
 - Validace zadaných PSČ a HDO kódů
+- HDO Timeline - zobrazení jednoduchého grafu
 
 ---
 
@@ -91,6 +92,27 @@ Chytré měřiče s speciálními kódy (Cd56, C55, D56, atd.).
 
 4. **Vyberte typ konfigurace:**   
 <img width="373" height="372" alt="{EFBEC61D-F4EE-42EF-9AB0-5AA49CDD3C9C}" src="https://github.com/user-attachments/assets/8cf13d7e-9dbd-4985-8528-ea8559f9952e" />
+
+
+##  HDO Timeline nastavení
+
+<img width="485" height="357" alt="{6A53E1BA-5812-42B8-B76E-D1A24A4A118B}" src="https://github.com/user-attachments/assets/466bc63c-16c7-4ffc-97e9-a1a8c306e776" />
+
+1. Jděte na **Nastavení** → **Ovládací panely**
+2. Klikněte **...** v pravo nahoře
+3. Klikněte na **Zdroje**
+4. Přidejte /egddistribuce_card/hdo-chart-card.js
+5. Přidejte kartu v Dashboard 
+
+```yaml
+type: custom:hdo-chart-card
+entity: binary_sensor.egd_hdo_hdo_status
+title: HDO Timeline
+show_days: 2
+```
+
+
+
 
 You can show them in a graph, with other entities, for example spot prices from Czech Energy Spot Prices (https://github.com/rnovacek/homeassistant_cz_energy_spot_prices):
 
