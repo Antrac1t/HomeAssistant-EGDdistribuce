@@ -77,30 +77,45 @@ class HdoChartCard extends HTMLElement {
     const colorVt = attributes.color_vt || '#ff5252';
     const colorNt = attributes.color_nt || '#2196f3';
     
-    // Group data by day
-    const dayGroups = this._groupByDay(hdoData);
+    // Získat časové sloty pro dnes a zítra
+    const hdoTimesToday = attributes.hdo_times_today_raw || [];
+    const hdoTimesTomorrow = attributes.hdo_times_tomorrow_raw || [];
+    const region = attributes.region || '';
+    const isTou = region === 'TOU';
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
     let html = '<div style="width: 100%;">';
     
-    for (let dayOffset = 0; dayOffset < showDays && dayOffset < dayGroups.length; dayOffset++) {
-      const dayDate = new Date(today);
-      dayDate.setDate(dayDate.getDate() + dayOffset);
-      const dayKey = dayDate.toISOString().split('T')[0];
-      const dayData = dayGroups.find(g => g.date === dayKey);
-      
-      if (!dayData) continue;
-      
-      const dayLabel = dayOffset === 0 ? 'Dnes' : 'Zítra';
-      const dateStr = dayDate.toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'short' });
+    // Dnes
+    if (showDays >= 1) {
+      const dayLabel = 'Dnes';
+      const dateStr = today.toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'short' });
       
       html += `
         <div style="margin-bottom: 24px;">
           <div style="font-weight: 500; margin-bottom: 8px; color: var(--primary-text-color);">
             ${dayLabel} (${dateStr})
           </div>
-          ${this._renderDayChart(dayData.entries, priceVt, priceNt, colorVt, colorNt)}
+          ${this._renderDayChartFromSlots(hdoTimesToday, priceVt, priceNt, colorVt, colorNt, isTou, true)}
+        </div>
+      `;
+    }
+    
+    // Zítra
+    if (showDays >= 2) {
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dayLabel = 'Zítra';
+      const dateStr = tomorrow.toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'short' });
+      
+      html += `
+        <div style="margin-bottom: 24px;">
+          <div style="font-weight: 500; margin-bottom: 8px; color: var(--primary-text-color);">
+            ${dayLabel} (${dateStr})
+          </div>
+          ${this._renderDayChartFromSlots(hdoTimesTomorrow, priceVt, priceNt, colorVt, colorNt, isTou, false)}
         </div>
       `;
     }
@@ -128,32 +143,86 @@ class HdoChartCard extends HTMLElement {
     })).sort((a, b) => a.date.localeCompare(b.date));
   }
 
-  _renderDayChart(dayEntries, priceVt, priceNt, colorVt, colorNt) {
-    // Create blocks for continuous periods
-    const blocks = [];
-    let currentBlock = null;
+  _renderDayChartFromSlots(hdoSlots, priceVt, priceNt, colorVt, colorNt, isTou, isToday) {
+    // Vytvořit bloky z časových slotů
+    // Pro TOU: sloty = NT periody
+    // Pro klasické HDO: sloty = HDO signál = NT periody
     
-    for (let i = 0; i < dayEntries.length; i++) {
-      const entry = dayEntries[i];
-      const isVt = Math.abs(entry.price - priceVt) < 0.01;
-      
-      if (!currentBlock || currentBlock.isVt !== isVt) {
-        if (currentBlock) {
-          blocks.push(currentBlock);
+    // Parsovat sloty
+    const parsedSlots = [];
+    for (const slot of hdoSlots) {
+      try {
+        const startParts = slot.od.split(':');
+        const endParts = slot.do.split(':');
+        const startHour = parseInt(startParts[0]) + parseInt(startParts[1]) / 60;
+        let endHour = parseInt(endParts[0]) + parseInt(endParts[1]) / 60;
+        
+        // Speciální případ: 23:59 znamená konec dne (24:00)
+        if (slot.do === '23:59:00') {
+          endHour = 24;
         }
-        currentBlock = {
-          isVt,
-          start: entry.hour,
-          end: entry.hour + 0.5, // 30 min interval
-          price: entry.price
-        };
-      } else {
-        currentBlock.end = entry.hour + 0.5;
+        
+        parsedSlots.push({ start: startHour, end: endHour });
+      } catch (e) {
+        console.error('Error parsing slot:', slot, e);
       }
     }
     
-    if (currentBlock) {
-      blocks.push(currentBlock);
+    // Seřadit sloty podle času
+    parsedSlots.sort((a, b) => a.start - b.start);
+    
+    // Sloučit překrývající se sloty
+    const mergedSlots = [];
+    for (const slot of parsedSlots) {
+      if (mergedSlots.length === 0) {
+        mergedSlots.push({ start: slot.start, end: slot.end });
+      } else {
+        const lastSlot = mergedSlots[mergedSlots.length - 1];
+        
+        // Pokud se sloty překrývají nebo navazují, sloučit je
+        if (slot.start <= lastSlot.end) {
+          lastSlot.end = Math.max(lastSlot.end, slot.end);
+        } else {
+          // Nový slot, který se nepřekrývá
+          mergedSlots.push({ start: slot.start, end: slot.end });
+        }
+      }
+    }
+    
+    // Vytvořit bloky: sloty = NT, mezery = VT
+    const blocks = [];
+    let currentTime = 0;
+    
+    for (const slot of mergedSlots) {
+      // Pokud je mezera před slotem, přidat VT blok
+      if (currentTime < slot.start) {
+        blocks.push({
+          isVt: true,
+          start: currentTime,
+          end: slot.start,
+          price: priceVt
+        });
+      }
+      
+      // Přidat NT blok (slot)
+      blocks.push({
+        isVt: false,
+        start: slot.start,
+        end: slot.end,
+        price: priceNt
+      });
+      
+      currentTime = slot.end;
+    }
+    
+    // Pokud je mezera na konci dne, přidat VT blok
+    if (currentTime < 24) {
+      blocks.push({
+        isVt: true,
+        start: currentTime,
+        end: 24,
+        price: priceVt
+      });
     }
     
     // Render timeline
@@ -189,6 +258,145 @@ class HdoChartCard extends HTMLElement {
         onmouseover="this.style.opacity='0.8'"
         onmouseout="this.style.opacity='1'">
           ${width > 8 ? label : ''}
+        </div>
+      `;
+    }
+    
+    // Aktuální čas (jen pro dnešní den)
+    if (isToday) {
+      const now = new Date();
+      const currentHour = now.getHours() + now.getMinutes() / 60;
+      const currentPosition = (currentHour / 24) * 100;
+      
+      html += `
+        <div style="
+          position: absolute;
+          left: ${currentPosition}%;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: rgba(255, 255, 255, 0.9);
+          box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+          z-index: 10;
+        "
+        title="Aktuální čas: ${this._formatHour(currentHour)}">
+        </div>
+      `;
+    }
+    
+    html += '</div>';
+    
+    // Time axis
+    html += `
+      <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px; color: var(--secondary-text-color);">
+        <span>0:00</span>
+        <span>6:00</span>
+        <span>12:00</span>
+        <span>18:00</span>
+        <span>24:00</span>
+      </div>
+    `;
+    
+    return html;
+  }
+
+  _renderDayChart(dayEntries, priceVt, priceNt, colorVt, colorNt, isToday = false) {
+    if (dayEntries.length === 0) {
+      return '<p>No data for this day</p>';
+    }
+    
+    // Create blocks for continuous periods
+    const blocks = [];
+    let currentBlock = null;
+    
+    for (let i = 0; i < dayEntries.length; i++) {
+      const entry = dayEntries[i];
+      const isVt = Math.abs(entry.price - priceVt) < 0.01;
+      
+      if (!currentBlock || currentBlock.isVt !== isVt) {
+        if (currentBlock) {
+          blocks.push(currentBlock);
+        }
+        currentBlock = {
+          isVt,
+          start: entry.hour,
+          end: entry.hour + 0.25, // 15 min interval
+          price: entry.price
+        };
+      } else {
+        currentBlock.end = entry.hour + 0.25;
+      }
+    }
+    
+    if (currentBlock) {
+      blocks.push(currentBlock);
+    }
+    
+    // Vyplnit začátek dne (0:00) - rozšířit první blok zpět na 0:00
+    if (blocks.length > 0 && blocks[0].start > 0) {
+      blocks[0].start = 0;
+    }
+    
+    // Vyplnit konec dne (24:00) - rozšířit poslední blok dopředu na 24:00
+    if (blocks.length > 0 && blocks[blocks.length - 1].end < 24) {
+      blocks[blocks.length - 1].end = 24;
+    }
+    
+    // Render timeline
+    let html = `
+      <div style="position: relative; height: 40px; background: var(--divider-color); border-radius: 4px; overflow: hidden;">
+    `;
+    
+    for (const block of blocks) {
+      const left = (block.start / 24) * 100;
+      const width = ((block.end - block.start) / 24) * 100;
+      const color = block.isVt ? colorVt : colorNt;
+      const label = block.isVt ? 'VT' : 'NT';
+      const startTime = this._formatHour(block.start);
+      const endTime = this._formatHour(block.end);
+      
+      html += `
+        <div style="
+          position: absolute;
+          left: ${left}%;
+          width: ${width}%;
+          height: 100%;
+          background: ${color};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 11px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        "
+        title="${label}: ${startTime} - ${endTime} (${block.price} Kč/kWh)"
+        onmouseover="this.style.opacity='0.8'"
+        onmouseout="this.style.opacity='1'">
+          ${width > 8 ? label : ''}
+        </div>
+      `;
+    }
+    
+    // Aktuální čas (jen pro dnešní den)
+    if (isToday) {
+      const now = new Date();
+      const currentHour = now.getHours() + now.getMinutes() / 60;
+      const currentPosition = (currentHour / 24) * 100;
+      
+      html += `
+        <div style="
+          position: absolute;
+          left: ${currentPosition}%;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: rgba(255, 255, 255, 0.9);
+          box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+          z-index: 10;
+        "
+        title="Aktuální čas: ${this._formatHour(currentHour)}">
         </div>
       `;
     }
