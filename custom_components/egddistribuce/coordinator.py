@@ -29,7 +29,8 @@ _LOGGER = logging.getLogger(__name__)
 API_REGION_URL = "https://hdo.distribuce24.cz/region"
 API_HDO_URL = "https://hdo.distribuce24.cz/casy"
 
-UPDATE_INTERVAL = timedelta(minutes=2)
+# Default update interval (can be overridden in config)
+DEFAULT_UPDATE_INTERVAL = timedelta(minutes=2)
 
 
 class EGDDistribuceCoordinator(DataUpdateCoordinator):
@@ -46,13 +47,16 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         hdo_code: str = None,
         price_nt: float = 1.5,
         price_vt: float = 2.5,
+        update_interval: int = 2,  # in minutes
+        color_vt: str = "#ff5252",  # Red for high tariff
+        color_nt: str = "#2196f3",  # Blue for low tariff
     ):
         """Initialize coordinator."""
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=UPDATE_INTERVAL,
+            update_interval=timedelta(minutes=update_interval),
         )
         self.config_type = config_type
         self.psc = psc
@@ -62,6 +66,8 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         self.hdo_code = hdo_code
         self.price_nt = price_nt
         self.price_vt = price_vt
+        self.color_vt = color_vt
+        self.color_nt = color_nt
         self.cz_holidays = holidays.country_holidays('CZ')
 
     async def _async_update_data(self) -> Dict[str, Any]:
@@ -229,11 +235,19 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         
         # Zjistit aktuální stav a zbývající čas
         current_time = datetime.now().time()
-        is_active = self._is_time_active(current_time, hdo_times_today)
+        is_in_time_slot = self._is_time_active(current_time, hdo_times_today)
         
-        # Pro TOU invertovat stav (časy = kdy JE NT, ne kdy je HDO signál)
+        # Určit cenu a stav podle typu
         if is_tou:
-            is_active = not is_active
+            # TOU: časy = kdy JE NT
+            current_price = self.price_nt if is_in_time_slot else self.price_vt
+            # Status: Zapnuto = NT perioda (levná elektřina)
+            is_active = is_in_time_slot
+        else:
+            # Klasické HDO: časy = HDO signál = NT
+            current_price = self.price_nt if is_in_time_slot else self.price_vt
+            # Status: Zapnuto = HDO signál aktivní
+            is_active = is_in_time_slot
         
         remaining_time = self._calculate_remaining_time(current_time, hdo_times_today, hdo_times_tomorrow, is_tou)
         
@@ -244,7 +258,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             "is_active": is_active,
             "hdo_times_today": hdo_times_today,
             "hdo_times_tomorrow": hdo_times_tomorrow,
-            "current_price": self.price_nt if is_active else self.price_vt,
+            "current_price": current_price,
             "remaining_time": remaining_time,
             "region": region,
             "HDO_HOURLY": HDO_HOURLY,
