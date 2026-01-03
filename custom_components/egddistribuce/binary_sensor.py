@@ -99,6 +99,7 @@ class EGDDistribuceBinarySensor(CoordinatorEntity[EGDDistribuceCoordinator], Bin
             "region": self.coordinator.data.get("region", "N/A"),
             "price_vt": self.coordinator.price_vt,
             "price_nt": self.coordinator.price_nt,
+            "hdo_hourly": self.coordinator.data.get("hdo_hourly", {}),
         }
 
         # Add raw time data for automations
