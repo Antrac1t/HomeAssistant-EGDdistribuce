@@ -106,7 +106,7 @@ Chytré měřiče s speciálními kódy (Cd56, C55, D56, atd.).
 
 ```yaml
 type: custom:hdo-chart-card
-entity: binary_sensor.egd_hdo_hdo_status
+entity: binary_sensor.NazevSenzoru
 title: HDO Timeline
 show_days: 2
 ```
