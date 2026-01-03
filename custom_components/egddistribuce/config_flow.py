@@ -23,11 +23,17 @@ from .const import (
     CONF_PRICE_NT,
     CONF_PRICE_VT,
     CONF_CONFIG_TYPE,
+    CONF_UPDATE_INTERVAL,
+    CONF_COLOR_VT,
+    CONF_COLOR_NT,
     CONFIG_TYPE_CLASSIC,
     CONFIG_TYPE_HDO_CODES,
     CONFIG_TYPE_SMART,
     DEFAULT_PRICE_NT,
     DEFAULT_PRICE_VT,
+    DEFAULT_UPDATE_INTERVAL,
+    DEFAULT_COLOR_VT,
+    DEFAULT_COLOR_NT,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -145,6 +151,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_CODE_DP): vol.In(code_dp_options),
                 vol.Optional(CONF_PRICE_VT, default=DEFAULT_PRICE_VT): cv.positive_float,
                 vol.Optional(CONF_PRICE_NT, default=DEFAULT_PRICE_NT): cv.positive_float,
+                vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
+                vol.Optional(CONF_COLOR_VT, default=DEFAULT_COLOR_VT): cv.string,
+                vol.Optional(CONF_COLOR_NT, default=DEFAULT_COLOR_NT): cv.string,
             }),
             errors=errors,
         )
@@ -180,6 +189,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_HDO_CODE, description={"suggested_value": "405,406,410"}): cv.string,
                 vol.Optional(CONF_PRICE_VT, default=DEFAULT_PRICE_VT): cv.positive_float,
                 vol.Optional(CONF_PRICE_NT, default=DEFAULT_PRICE_NT): cv.positive_float,
+                vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
+                vol.Optional(CONF_COLOR_VT, default=DEFAULT_COLOR_VT): cv.string,
+                vol.Optional(CONF_COLOR_NT, default=DEFAULT_COLOR_NT): cv.string,
             }),
             errors=errors,
             description_placeholders={
@@ -215,6 +227,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_HDO_CODE, description={"suggested_value": "Cd56"}): cv.string,
                 vol.Optional(CONF_PRICE_VT, default=DEFAULT_PRICE_VT): cv.positive_float,
                 vol.Optional(CONF_PRICE_NT, default=DEFAULT_PRICE_NT): cv.positive_float,
+                vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
+                vol.Optional(CONF_COLOR_VT, default=DEFAULT_COLOR_VT): cv.string,
+                vol.Optional(CONF_COLOR_NT, default=DEFAULT_COLOR_NT): cv.string,
             }),
             errors=errors,
             description_placeholders={
@@ -251,12 +266,20 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         current_price_nt = self.config_entry.options.get(
             CONF_PRICE_NT, self.config_entry.data.get(CONF_PRICE_NT, DEFAULT_PRICE_NT)
         )
+        current_color_vt = self.config_entry.options.get(
+            CONF_COLOR_VT, self.config_entry.data.get(CONF_COLOR_VT, DEFAULT_COLOR_VT)
+        )
+        current_color_nt = self.config_entry.options.get(
+            CONF_COLOR_NT, self.config_entry.data.get(CONF_COLOR_NT, DEFAULT_COLOR_NT)
+        )
 
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({
                 vol.Optional(CONF_PRICE_VT, default=current_price_vt): cv.positive_float,
                 vol.Optional(CONF_PRICE_NT, default=current_price_nt): cv.positive_float,
+                vol.Optional(CONF_COLOR_VT, default=current_color_vt): cv.string,
+                vol.Optional(CONF_COLOR_NT, default=current_color_nt): cv.string,
             }),
         )
 
