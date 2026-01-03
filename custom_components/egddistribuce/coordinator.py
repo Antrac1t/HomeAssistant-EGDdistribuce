@@ -228,6 +228,9 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         # Získat region z prvního záznamu (pokud existuje)
         region = filtered_records[0].get('region', 'N/A') if filtered_records else 'N/A'
         
+        # Vygenerovat HDO_HOURLY pro dalších 24 hodin
+        hdo_hourly = self._generate_hdo_hourly(hdo_times_today, hdo_times_tomorrow)
+        
         return {
             "is_active": is_active,
             "hdo_times_today": hdo_times_today,
@@ -235,6 +238,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             "current_price": self.price_nt if is_active else self.price_vt,
             "remaining_time": remaining_time,
             "region": region,
+            "hdo_hourly": hdo_hourly,
         }
 
     def _is_matching_day(self, date: datetime.date, day_code: int) -> bool:
@@ -319,3 +323,36 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
                 pass
         
         return "N/A"
+
+    def _generate_hdo_hourly(self, hdo_times_today: list, hdo_times_tomorrow: list) -> dict:
+        """Vygenerovat HDO_HOURLY atribut - 15minutové intervaly na 24 hodin dopředu."""
+        now = datetime.now()
+        result = {}
+        
+        # Začít od aktuální 15minutovky (zaokrouhlit dolů)
+        current_minute = (now.minute // 15) * 15
+        start_time = now.replace(minute=current_minute, second=0, microsecond=0)
+        
+        # Generovat 96 intervalů (24 hodin * 4 = 96 x 15 minut)
+        for i in range(96):
+            timestamp = start_time + timedelta(minutes=i * 15)
+            time_check = timestamp.time()
+            
+            # Zjistit jestli je HDO aktivní v tento čas
+            is_hdo = False
+            
+            # Pokud je čas dnes
+            if timestamp.date() == now.date():
+                is_hdo = self._is_time_active(time_check, hdo_times_today)
+            # Pokud je čas zítra
+            elif timestamp.date() == (now.date() + timedelta(days=1)):
+                is_hdo = self._is_time_active(time_check, hdo_times_tomorrow)
+            
+            # Nastavit cenu podle HDO stavu
+            price = self.price_nt if is_hdo else self.price_vt
+            
+            # Formát timestamp pro HA (ISO 8601 s timezone)
+            timestamp_str = timestamp.strftime("%Y-%m-%dT%H:%M:%S+01:00")
+            result[timestamp_str] = round(price, 4)
+        
+        return result
