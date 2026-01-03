@@ -25,20 +25,19 @@ Integrace podporuje jak **klasické elektroměry**, tak **smart měření**, a j
 
 ### 1. Klasické HDO (A + B + DP)
 Určeno pro tradiční elektroměry využívající kombinaci kódů **A**, **B** a **DP**.
-<img width="374" height="520" alt="{979A28CA-203C-4525-9FDA-A4E91B822A24}" src="https://github.com/user-attachments/assets/db250379-8005-4ab9-9c59-25ac94e1c3dc" />
+<img width="351" height="768" alt="{A7547B41-1C31-41BB-AAF3-B42E5CE84658}" src="https://github.com/user-attachments/assets/02075e49-decb-49de-894d-06d555b19c97" />
 
 
 ### 2. HDO Povel 
 Pro elektroměry s více HDO příkazy (např. různá relé pro ohřev vody, topení, atd.)
 
-<img width="420" height="358" alt="{233DD523-A860-4603-9319-67E76AAD0670}" src="https://github.com/user-attachments/assets/fa2f0dd6-c954-4751-9dbf-f1e0f8fe7f8a" />
+<img width="432" height="682" alt="{5CF42B5D-89D2-48F1-8FF1-3BEDB35B2B35}" src="https://github.com/user-attachments/assets/d6654054-bf97-45d1-8cc3-28505359eb32" />
 
 
 ### 3. Smart Metr
 Chytré měřiče s speciálními kódy (Cd56, C55, D56, atd.).
 
-<img width="369" height="285" alt="{5318E21B-E07E-4027-9F58-1EB70C4AD57E}" src="https://github.com/user-attachments/assets/199e8b00-66e3-4318-8b52-c2a9265d61ba" />
-
+<img width="382" height="596" alt="{605E5EE0-E509-4829-B91F-26D2E357E93A}" src="https://github.com/user-attachments/assets/ff944576-99ec-43f5-b66b-bfe9f197e385" />
 
 
 ## 🎯 Funkce
