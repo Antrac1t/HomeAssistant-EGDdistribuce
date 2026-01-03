@@ -17,7 +17,7 @@ class HdoChartCard extends HTMLElement {
       return;
     }
 
-    // Try multiple attribute name variations
+
     const hdoHourly = stateObj.attributes['HDO_HOURLY'] 
                    || stateObj.attributes['HDO HOURLY']
                    || stateObj.attributes['hdo_hourly'];
@@ -27,7 +27,7 @@ class HdoChartCard extends HTMLElement {
       return;
     }
     
-    // Debug: check what type we got
+
     if (typeof hdoHourly === 'string') {
       this.content.innerHTML = '<p>HDO_HOURLY is a string, not an object. Check binary_sensor.py</p>';
       return;
@@ -44,11 +44,9 @@ class HdoChartCard extends HTMLElement {
       return;
     }
 
-    // Parse HDO data
     const hdoData = this._parseHdoData(hdoHourly);
-    const showDays = this.config.show_days || 1; // 1 = today, 2 = today + tomorrow
+    const showDays = this.config.show_days || 1; 
     
-    // Render chart
     this.content.innerHTML = this._renderChart(hdoData, showDays, stateObj.attributes);
   }
 
@@ -56,7 +54,6 @@ class HdoChartCard extends HTMLElement {
     const entries = [];
     
     for (const [timestamp, price] of Object.entries(hdoHourly)) {
-      // timestamp is ISO string like "2026-01-03T14:30:00"
       const dt = new Date(timestamp);
       entries.push({
         timestamp: dt,
@@ -65,7 +62,6 @@ class HdoChartCard extends HTMLElement {
       });
     }
     
-    // Sort by timestamp
     entries.sort((a, b) => a.timestamp - b.timestamp);
     
     return entries;
@@ -77,7 +73,7 @@ class HdoChartCard extends HTMLElement {
     const colorVt = attributes.color_vt || '#ff5252';
     const colorNt = attributes.color_nt || '#2196f3';
     
-    // Získat časové sloty pro dnes a zítra
+
     const hdoTimesToday = attributes.hdo_times_today_raw || [];
     const hdoTimesTomorrow = attributes.hdo_times_tomorrow_raw || [];
     const region = attributes.region || '';
@@ -88,7 +84,7 @@ class HdoChartCard extends HTMLElement {
     
     let html = '<div style="width: 100%;">';
     
-    // Dnes
+
     if (showDays >= 1) {
       const dayLabel = 'Dnes';
       const dateStr = today.toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'short' });
@@ -103,7 +99,7 @@ class HdoChartCard extends HTMLElement {
       `;
     }
     
-    // Zítra
+ 
     if (showDays >= 2) {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -144,11 +140,7 @@ class HdoChartCard extends HTMLElement {
   }
 
   _renderDayChartFromSlots(hdoSlots, priceVt, priceNt, colorVt, colorNt, isTou, isToday) {
-    // Vytvořit bloky z časových slotů
-    // Pro TOU: sloty = NT periody
-    // Pro klasické HDO: sloty = HDO signál = NT periody
-    
-    // Parsovat sloty
+
     const parsedSlots = [];
     for (const slot of hdoSlots) {
       try {
@@ -157,7 +149,7 @@ class HdoChartCard extends HTMLElement {
         const startHour = parseInt(startParts[0]) + parseInt(startParts[1]) / 60;
         let endHour = parseInt(endParts[0]) + parseInt(endParts[1]) / 60;
         
-        // Speciální případ: 23:59 znamená konec dne (24:00)
+
         if (slot.do === '23:59:00') {
           endHour = 24;
         }
@@ -168,10 +160,10 @@ class HdoChartCard extends HTMLElement {
       }
     }
     
-    // Seřadit sloty podle času
+
     parsedSlots.sort((a, b) => a.start - b.start);
     
-    // Sloučit překrývající se sloty
+
     const mergedSlots = [];
     for (const slot of parsedSlots) {
       if (mergedSlots.length === 0) {
@@ -179,22 +171,22 @@ class HdoChartCard extends HTMLElement {
       } else {
         const lastSlot = mergedSlots[mergedSlots.length - 1];
         
-        // Pokud se sloty překrývají nebo navazují, sloučit je
+
         if (slot.start <= lastSlot.end) {
           lastSlot.end = Math.max(lastSlot.end, slot.end);
         } else {
-          // Nový slot, který se nepřekrývá
+
           mergedSlots.push({ start: slot.start, end: slot.end });
         }
       }
     }
     
-    // Vytvořit bloky: sloty = NT, mezery = VT
+
     const blocks = [];
     let currentTime = 0;
     
     for (const slot of mergedSlots) {
-      // Pokud je mezera před slotem, přidat VT blok
+
       if (currentTime < slot.start) {
         blocks.push({
           isVt: true,
@@ -204,7 +196,7 @@ class HdoChartCard extends HTMLElement {
         });
       }
       
-      // Přidat NT blok (slot)
+
       blocks.push({
         isVt: false,
         start: slot.start,
@@ -215,7 +207,7 @@ class HdoChartCard extends HTMLElement {
       currentTime = slot.end;
     }
     
-    // Pokud je mezera na konci dne, přidat VT blok
+
     if (currentTime < 24) {
       blocks.push({
         isVt: true,
@@ -225,7 +217,7 @@ class HdoChartCard extends HTMLElement {
       });
     }
     
-    // Render timeline
+
     let html = `
       <div style="position: relative; height: 40px; background: var(--divider-color); border-radius: 4px; overflow: hidden;">
     `;
@@ -262,7 +254,7 @@ class HdoChartCard extends HTMLElement {
       `;
     }
     
-    // Aktuální čas (jen pro dnešní den)
+
     if (isToday) {
       const now = new Date();
       const currentHour = now.getHours() + now.getMinutes() / 60;
@@ -286,7 +278,7 @@ class HdoChartCard extends HTMLElement {
     
     html += '</div>';
     
-    // Time axis
+
     html += `
       <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px; color: var(--secondary-text-color);">
         <span>0:00</span>
@@ -305,7 +297,7 @@ class HdoChartCard extends HTMLElement {
       return '<p>No data for this day</p>';
     }
     
-    // Create blocks for continuous periods
+
     const blocks = [];
     let currentBlock = null;
     
@@ -320,7 +312,7 @@ class HdoChartCard extends HTMLElement {
         currentBlock = {
           isVt,
           start: entry.hour,
-          end: entry.hour + 0.25, // 15 min interval
+          end: entry.hour + 0.25, 
           price: entry.price
         };
       } else {
@@ -332,17 +324,17 @@ class HdoChartCard extends HTMLElement {
       blocks.push(currentBlock);
     }
     
-    // Vyplnit začátek dne (0:00) - rozšířit první blok zpět na 0:00
+
     if (blocks.length > 0 && blocks[0].start > 0) {
       blocks[0].start = 0;
     }
     
-    // Vyplnit konec dne (24:00) - rozšířit poslední blok dopředu na 24:00
+
     if (blocks.length > 0 && blocks[blocks.length - 1].end < 24) {
       blocks[blocks.length - 1].end = 24;
     }
     
-    // Render timeline
+
     let html = `
       <div style="position: relative; height: 40px; background: var(--divider-color); border-radius: 4px; overflow: hidden;">
     `;
@@ -379,7 +371,7 @@ class HdoChartCard extends HTMLElement {
       `;
     }
     
-    // Aktuální čas (jen pro dnešní den)
+
     if (isToday) {
       const now = new Date();
       const currentHour = now.getHours() + now.getMinutes() / 60;
@@ -403,7 +395,7 @@ class HdoChartCard extends HTMLElement {
     
     html += '</div>';
     
-    // Time axis
+
     html += `
       <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px; color: var(--secondary-text-color);">
         <span>0:00</span>
