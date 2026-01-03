@@ -17,7 +17,10 @@
           "code_b": "Kód B (1-9)",
           "code_dp": "Kód DP (01-16)",
           "price_vt": "Cena VT (vysoký tarif) Kč/kWh",
-          "price_nt": "Cena NT (nízký tarif) Kč/kWh"
+          "price_nt": "Cena NT (nízký tarif) Kč/kWh",
+          "update_interval": "Interval aktualizace (minuty)",
+          "color_vt": "Barva VT (hex)",
+          "color_nt": "Barva NT (hex)"
         }
       },
       "hdo_codes": {
@@ -27,7 +30,10 @@
           "psc": "PSČ",
           "hdo_code": "HDO kódy (oddělené čárkou)",
           "price_vt": "Cena VT (vysoký tarif) Kč/kWh",
-          "price_nt": "Cena NT (nízký tarif) Kč/kWh"
+          "price_nt": "Cena NT (nízký tarif) Kč/kWh",
+          "update_interval": "Interval aktualizace (minuty)",
+          "color_vt": "Barva VT (hex)",
+          "color_nt": "Barva NT (hex)"
         },
         "data_description": {
           "hdo_code": "Příklad: 405,406,410 nebo jen 405"
@@ -39,7 +45,10 @@
         "data": {
           "hdo_code": "Kód smart metru",
           "price_vt": "Cena VT (vysoký tarif) Kč/kWh",
-          "price_nt": "Cena NT (nízký tarif) Kč/kWh"
+          "price_nt": "Cena NT (nízký tarif) Kč/kWh",
+          "update_interval": "Interval aktualizace (minuty)",
+          "color_vt": "Barva VT (hex)",
+          "color_nt": "Barva NT (hex)"
         },
         "data_description": {
           "hdo_code": "Příklad: Cd56, C55, D56"
@@ -62,7 +71,9 @@
         "description": "Změňte ceny elektřiny pro výpočet nákladů",
         "data": {
           "price_vt": "Cena VT (vysoký tarif) Kč/kWh",
-          "price_nt": "Cena NT (nízký tarif) Kč/kWh"
+          "price_nt": "Cena NT (nízký tarif) Kč/kWh",
+          "color_vt": "Barva VT (hex)",
+          "color_nt": "Barva NT (hex)"
         }
       }
     }
