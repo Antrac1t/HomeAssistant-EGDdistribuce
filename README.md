@@ -25,6 +25,7 @@ Integrace podporuje jak **klasické elektroměry**, tak **smart měření**, a j
 
 ### 1. Klasické HDO (A + B + DP)
 Určeno pro tradiční elektroměry využívající kombinaci kódů **A**, **B** a **DP**.
+
 <img width="351" height="768" alt="{A7547B41-1C31-41BB-AAF3-B42E5CE84658}" src="https://github.com/user-attachments/assets/02075e49-decb-49de-894d-06d555b19c97" />
 
 
@@ -47,7 +48,7 @@ Chytré měřiče s speciálními kódy (Cd56, C55, D56, atd.).
 
   - Příští HDO časový slot## Installation
 
--  Automatické Aktualizace - Data se obnovují každé 2 minuty
+-  Automatické Aktualizace - Data se obnovují každé 2 minuty (možnost změnit v nastavení 1-60)
 
 -  Detailní Atributy - Časy dnes/zítra, začátky, konce, region, ceny
 
