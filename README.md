@@ -38,8 +38,11 @@ Pro elektroměry s více HDO příkazy (např. různá relé pro ohřev vody, to
 
 ### 3. Smart Metr
 Chytré měřiče s speciálními kódy (Cd56, C55, D56, atd.). 
-Záleží na velikosti písmen a některé elektroměry mohou zobrazovat pomlčku míso podtržítka (na el. je toto: CD2526 - 3).
+Záleží na velikosti písmen a některé elektroměry mohou zobrazovat pomlčku míso podtržítka (na el. je toto: CD2526-3).
 Zadávaný kód musí odpovídat formátu v https://hdo.distribuce24.cz/casy (výsledný kód je Cd2526_3)
+
+<img width="412" height="191" alt="image" src="https://github.com/user-attachments/assets/aaa17e89-8873-48ff-856e-0d6f7f3b9bd3" />
+
 
 <img width="382" height="596" alt="{605E5EE0-E509-4829-B91F-26D2E357E93A}" src="https://github.com/user-attachments/assets/ff944576-99ec-43f5-b66b-bfe9f197e385" />
 
