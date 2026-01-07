@@ -27,7 +27,10 @@ async def async_setup_entry(
     """Set up EGD Distribuce binary sensor from a config entry."""
     coordinator: EGDDistribuceCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    async_add_entities([EGDDistribuceBinarySensor(coordinator, entry)])
+    async_add_entities([
+        EGDDistribuceBinarySensor(coordinator, entry),
+        EGDDistribuceTimesChangeBinarySensor(coordinator, entry)
+    ])
 
 
 class EGDDistribuceBinarySensor(CoordinatorEntity[EGDDistribuceCoordinator], BinarySensorEntity):
@@ -109,6 +112,94 @@ class EGDDistribuceBinarySensor(CoordinatorEntity[EGDDistribuceCoordinator], Bin
         attributes["hdo_times_tomorrow_raw"] = hdo_times_tomorrow
 
         return attributes
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self.coordinator.last_update_success and self.coordinator.data is not None
+
+
+class EGDDistribuceTimesChangeBinarySensor(CoordinatorEntity[EGDDistribuceCoordinator], BinarySensorEntity):
+    """Binary sensor indicating if HDO times change between today and tomorrow."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:calendar-clock"
+
+    def __init__(
+        self,
+        coordinator: EGDDistribuceCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the binary sensor."""
+        super().__init__(coordinator)
+        
+        self._attr_unique_id = f"{entry.entry_id}_hdo_times_change"
+        self._attr_translation_key = "hdo_times_change"
+        
+        # Device info for grouping entities
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, entry.entry_id)},
+            "name": entry.title,
+            "manufacturer": "EGD Distribuce",
+            "model": "HDO",
+            "entry_type": "service",
+        }
+
+    @property
+    def is_on(self) -> bool:
+        """Return true if HDO times will change tomorrow."""
+        if self.coordinator.data is None:
+            return False
+
+        hdo_times_today = self.coordinator.data.get("hdo_times_today", [])
+        hdo_times_tomorrow = self.coordinator.data.get("hdo_times_tomorrow", [])
+
+        # Normalize time slots for comparison
+        def normalize_times(times: list) -> str:
+            """Normalize time slots to a comparable string."""
+            if not times:
+                return ""
+            
+            # Sort slots and format them consistently
+            normalized = []
+            for slot in sorted(times, key=lambda x: x.get('od', '')):
+                start = slot.get('od', '').replace(':00', '').replace(' ', '')
+                end = slot.get('do', '').replace(':00', '').replace(' ', '')
+                normalized.append(f"{start}-{end}")
+            
+            return ",".join(normalized).lower()
+
+        today_str = normalize_times(hdo_times_today)
+        tomorrow_str = normalize_times(hdo_times_tomorrow)
+
+        # Return True if times are different (change detected)
+        return bool(today_str and tomorrow_str and today_str != tomorrow_str)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes."""
+        if self.coordinator.data is None:
+            return {}
+
+        hdo_times_today = self.coordinator.data.get("hdo_times_today", [])
+        hdo_times_tomorrow = self.coordinator.data.get("hdo_times_tomorrow", [])
+
+        # Format times for display
+        def format_times(times: list) -> str:
+            """Format time slots for display."""
+            if not times:
+                return "Žádné"
+            formatted = []
+            for slot in times:
+                start = slot.get('od', '').replace(':00', '')
+                end = slot.get('do', '').replace(':00', '')
+                formatted.append(f"{start}-{end}")
+            return ", ".join(formatted)
+
+        return {
+            "times_today": format_times(hdo_times_today),
+            "times_tomorrow": format_times(hdo_times_tomorrow),
+        }
 
     @property
     def available(self) -> bool:
