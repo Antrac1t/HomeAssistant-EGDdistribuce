@@ -1,207 +1,135 @@
-"""Binary sensor platform for EGD Distribuce."""
+"""The EGD Distribuce integration."""
 from __future__ import annotations
 
 import logging
-from typing import Any
+import os
 
-from homeassistant.components.binary_sensor import (
-    BinarySensorDeviceClass,
-    BinarySensorEntity,
-)
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.components.http import StaticPathConfig
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    CONF_PSC,
+    CONF_CODE_A,
+    CONF_CODE_B,
+    CONF_CODE_DP,
+    CONF_HDO_CODE,
+    CONF_PRICE_NT,
+    CONF_PRICE_VT,
+    CONF_CONFIG_TYPE,
+    CONF_UPDATE_INTERVAL,
+    CONF_COLOR_VT,
+    CONF_COLOR_NT,
+    CONFIG_TYPE_CLASSIC,
+    CONFIG_TYPE_HDO_CODES,
+    CONFIG_TYPE_SMART,
+    DEFAULT_PRICE_NT,
+    DEFAULT_PRICE_VT,
+    DEFAULT_UPDATE_INTERVAL,
+    DEFAULT_COLOR_VT,
+    DEFAULT_COLOR_NT,
+)
 from .coordinator import EGDDistribuceCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-) -> None:
-    """Set up EGD Distribuce binary sensor from a config entry."""
-    coordinator: EGDDistribuceCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    async_add_entities([
-        EGDDistribuceBinarySensor(coordinator, entry),
-        EGDDistribuceTimesChangeBinarySensor(coordinator, entry)
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the EGD Distribuce component."""
+    # Register custom Lovelace card
+    await hass.http.async_register_static_paths([
+        StaticPathConfig(
+            url_path="/egddistribuce_card/hdo-chart-card.js",
+            path=hass.config.path(f"custom_components/{DOMAIN}/hdo_chart_card.js"),
+            cache_headers=True,
+        )
     ])
+    
+    _LOGGER.info("Registered HDO Chart Card at /egddistribuce_card/hdo-chart-card.js")
+    
+    return True
 
 
-class EGDDistribuceBinarySensor(CoordinatorEntity[EGDDistribuceCoordinator], BinarySensorEntity):
-    """Representation of an EGD Distribuce HDO binary sensor."""
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up EGD Distribuce from a config entry."""
+    hass.data.setdefault(DOMAIN, {})
 
-    _attr_has_entity_name = True
-    _attr_device_class = BinarySensorDeviceClass.POWER
+    # Get configuration type
+    config_type = entry.data.get(CONF_CONFIG_TYPE, CONFIG_TYPE_CLASSIC)
+    
+    # Get common config
+    price_nt = entry.options.get(
+        CONF_PRICE_NT,
+        entry.data.get(CONF_PRICE_NT, DEFAULT_PRICE_NT)
+    )
+    price_vt = entry.options.get(
+        CONF_PRICE_VT,
+        entry.data.get(CONF_PRICE_VT, DEFAULT_PRICE_VT)
+    )
+    update_interval = entry.options.get(
+        CONF_UPDATE_INTERVAL,
+        entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+    )
+    color_vt = entry.options.get(
+        CONF_COLOR_VT,
+        entry.data.get(CONF_COLOR_VT, DEFAULT_COLOR_VT)
+    )
+    color_nt = entry.options.get(
+        CONF_COLOR_NT,
+        entry.data.get(CONF_COLOR_NT, DEFAULT_COLOR_NT)
+    )
 
-    def __init__(
-        self,
-        coordinator: EGDDistribuceCoordinator,
-        entry: ConfigEntry,
-    ) -> None:
-        """Initialize the binary sensor."""
-        super().__init__(coordinator)
-        
-        self._attr_unique_id = f"{entry.entry_id}_hdo_status"
-        self._attr_name = "HDO Status"
-        
-        # Device info for grouping entities
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": entry.title,
-            "manufacturer": "EGD Distribuce",
-            "model": "HDO",
-            "entry_type": "service",
-        }
+    # Get type-specific config
+    psc = entry.data.get(CONF_PSC)
+    code_a = entry.data.get(CONF_CODE_A)
+    code_b = entry.data.get(CONF_CODE_B)
+    code_dp = entry.data.get(CONF_CODE_DP)
+    hdo_code = entry.data.get(CONF_HDO_CODE)
 
-    @property
-    def is_on(self) -> bool:
-        """Return true if HDO is active (low tariff)."""
-        if self.coordinator.data is None:
-            return False
-        return self.coordinator.data.get("is_active", False)
+    # Create coordinator
+    coordinator = EGDDistribuceCoordinator(
+        hass,
+        config_type=config_type,
+        psc=psc,
+        code_a=code_a,
+        code_b=code_b,
+        code_dp=code_dp,
+        hdo_code=hdo_code,
+        price_nt=float(price_nt),
+        price_vt=float(price_vt),
+        update_interval=int(update_interval),
+        color_vt=str(color_vt),
+        color_nt=str(color_nt),
+    )
 
-    @property
-    def icon(self) -> str:
-        """Return the icon to use in the frontend."""
-        return "mdi:transmission-tower" if self.is_on else "mdi:transmission-tower-off"
+    # Fetch initial data
+    await coordinator.async_config_entry_first_refresh()
 
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return the state attributes."""
-        if self.coordinator.data is None:
-            return {}
+    # Store coordinator
+    hass.data[DOMAIN][entry.entry_id] = coordinator
 
-        hdo_times_today = self.coordinator.data.get("hdo_times_today", [])
-        hdo_times_tomorrow = self.coordinator.data.get("hdo_times_tomorrow", [])
+    # Setup platforms
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-        # Format times for display
-        def format_times(times: list) -> str:
-            """Format time slots for display."""
-            if not times:
-                return "Žádné"
-            formatted = []
-            for slot in times:
-                start = slot['od'].replace(':00', '')
-                end = slot['do'].replace(':00', '')
-                formatted.append(f"{start}-{end}")
-            return ", ".join(formatted)
+    # Setup options update listener
+    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
-        attributes = {
-            "hdo_times_today": format_times(hdo_times_today),
-            "hdo_times_tomorrow": format_times(hdo_times_tomorrow),
-            "hdo_cas_od": [slot['od'] for slot in hdo_times_today],
-            "hdo_cas_do": [slot['do'] for slot in hdo_times_today],
-            "remaining_time": self.coordinator.data.get("remaining_time", "N/A"),
-            "current_price": self.coordinator.data.get("current_price", 0),
-            "region": self.coordinator.data.get("region", "N/A"),
-            "price_vt": self.coordinator.price_vt,
-            "price_nt": self.coordinator.price_nt,
-            "color_vt": self.coordinator.color_vt,
-            "color_nt": self.coordinator.color_nt,
-            "HDO_HOURLY": self.coordinator.data.get("HDO_HOURLY", {}),
-        }
-
-        # Add raw time data for automations
-        attributes["hdo_times_today_raw"] = hdo_times_today
-        attributes["hdo_times_tomorrow_raw"] = hdo_times_tomorrow
-
-        return attributes
-
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        return self.coordinator.last_update_success and self.coordinator.data is not None
+    return True
 
 
-class EGDDistribuceTimesChangeBinarySensor(CoordinatorEntity[EGDDistribuceCoordinator], BinarySensorEntity):
-    """Binary sensor indicating if HDO times change between today and tomorrow."""
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        hass.data[DOMAIN].pop(entry.entry_id)
 
-    _attr_has_entity_name = True
-    _attr_icon = "mdi:calendar-clock"
+    return unload_ok
 
-    def __init__(
-        self,
-        coordinator: EGDDistribuceCoordinator,
-        entry: ConfigEntry,
-    ) -> None:
-        """Initialize the binary sensor."""
-        super().__init__(coordinator)
-        
-        self._attr_unique_id = f"{entry.entry_id}_hdo_times_change"
-        self._attr_translation_key = "hdo_times_change"
-        
-        # Device info for grouping entities
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": entry.title,
-            "manufacturer": "EGD Distribuce",
-            "model": "HDO",
-            "entry_type": "service",
-        }
 
-    @property
-    def is_on(self) -> bool:
-        """Return true if HDO times will change tomorrow."""
-        if self.coordinator.data is None:
-            return False
-
-        hdo_times_today = self.coordinator.data.get("hdo_times_today", [])
-        hdo_times_tomorrow = self.coordinator.data.get("hdo_times_tomorrow", [])
-
-        # Normalize time slots for comparison
-        def normalize_times(times: list) -> str:
-            """Normalize time slots to a comparable string."""
-            if not times:
-                return ""
-            
-            # Sort slots and format them consistently
-            normalized = []
-            for slot in sorted(times, key=lambda x: x.get('od', '')):
-                start = slot.get('od', '').replace(':00', '').replace(' ', '')
-                end = slot.get('do', '').replace(':00', '').replace(' ', '')
-                normalized.append(f"{start}-{end}")
-            
-            return ",".join(normalized).lower()
-
-        today_str = normalize_times(hdo_times_today)
-        tomorrow_str = normalize_times(hdo_times_tomorrow)
-
-        # Return True if times are different (change detected)
-        return bool(today_str and tomorrow_str and today_str != tomorrow_str)
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return the state attributes."""
-        if self.coordinator.data is None:
-            return {}
-
-        hdo_times_today = self.coordinator.data.get("hdo_times_today", [])
-        hdo_times_tomorrow = self.coordinator.data.get("hdo_times_tomorrow", [])
-
-        # Format times for display
-        def format_times(times: list) -> str:
-            """Format time slots for display."""
-            if not times:
-                return "Žádné"
-            formatted = []
-            for slot in times:
-                start = slot.get('od', '').replace(':00', '')
-                end = slot.get('do', '').replace(':00', '')
-                formatted.append(f"{start}-{end}")
-            return ", ".join(formatted)
-
-        return {
-            "times_today": format_times(hdo_times_today),
-            "times_tomorrow": format_times(hdo_times_tomorrow),
-        }
-
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        return self.coordinator.last_update_success and self.coordinator.data is not None
+async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload config entry when options are updated."""
+    await hass.config_entries.async_reload(entry.entry_id)
