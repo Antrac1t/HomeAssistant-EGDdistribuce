@@ -82,6 +82,9 @@
     "binary_sensor": {
       "hdo_status": {
         "name": "HDO stav"
+      },
+      "hdo_times_change": {
+        "name": "Změna HDO časů"
       }
     },
     "sensor": {
