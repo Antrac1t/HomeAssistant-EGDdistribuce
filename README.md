@@ -116,6 +116,8 @@ type: custom:hdo-chart-card
 entity: binary_sensor.NazevSenzoru
 title: HDO Timeline
 show_days: 2
+show_header: false
+
 ```
 
 
