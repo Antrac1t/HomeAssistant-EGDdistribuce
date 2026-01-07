@@ -2,7 +2,10 @@ class HdoChartCard extends HTMLElement {
   set hass(hass) {
     if (!this.content) {
       const card = document.createElement('ha-card');
-      card.header = this.config.title || 'HDO Timeline';
+      // Nastavit header pouze pokud show_header není false
+      if (this.config.show_header !== false) {
+        card.header = this.config.title || 'HDO Timeline';
+      }
       this.content = document.createElement('div');
       this.content.style.padding = '16px';
       card.appendChild(this.content);
@@ -449,7 +452,8 @@ class HdoChartCard extends HTMLElement {
     return {
       entity: "binary_sensor.hdo_status",
       title: "HDO Timeline",
-      show_days: 2
+      show_days: 2,
+      show_header: true
     };
   }
 }
