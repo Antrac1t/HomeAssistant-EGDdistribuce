@@ -76,6 +76,7 @@ class HdoChartCard extends HTMLElement {
     const colorVt = attributes.color_vt || '#ff5252';
     const colorNt = attributes.color_nt || '#2196f3';
     
+    const remainingTime = attributes.remaining_time || '-';
 
     const hdoTimesToday = attributes.hdo_times_today_raw || [];
     const hdoTimesTomorrow = attributes.hdo_times_tomorrow_raw || [];
@@ -119,7 +120,7 @@ class HdoChartCard extends HTMLElement {
       `;
     }
     
-    html += this._renderLegend(priceVt, priceNt, colorVt, colorNt);
+    html += this._renderLegend(priceVt, priceNt, colorVt, colorNt, remainingTime);
     html += '</div>';
     
     return html;
@@ -272,7 +273,7 @@ class HdoChartCard extends HTMLElement {
           width: 2px;
           background: rgba(255, 255, 255, 0.9);
           box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
-          z-index: 10;
+          z-index: 3;
         "
         title="Aktuální čas: ${this._formatHour(currentHour)}">
         </div>
@@ -389,7 +390,7 @@ class HdoChartCard extends HTMLElement {
           width: 2px;
           background: rgba(255, 255, 255, 0.9);
           box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
-          z-index: 10;
+          z-index: 3;
         "
         title="Aktuální čas: ${this._formatHour(currentHour)}">
         </div>
@@ -418,7 +419,7 @@ class HdoChartCard extends HTMLElement {
     return `${h}:${m.toString().padStart(2, '0')}`;
   }
 
-  _renderLegend(priceVt, priceNt, colorVt, colorNt) {
+  _renderLegend(priceVt, priceNt, colorVt, colorNt, remainingTime) {
     return `
       <div style="display: flex; gap: 16px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--divider-color); font-size: 12px;">
         <div style="display: flex; align-items: center; gap: 6px;">
@@ -428,6 +429,10 @@ class HdoChartCard extends HTMLElement {
         <div style="display: flex; align-items: center; gap: 6px;">
           <div style="width: 16px; height: 16px; background: ${colorNt}; border-radius: 2px;"></div>
           <span>NT (${priceNt} Kč/kWh)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+         
+          <span>Další změna za: ${remainingTime}</span>
         </div>
       </div>
     `;
