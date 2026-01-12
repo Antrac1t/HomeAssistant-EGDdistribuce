@@ -148,7 +148,7 @@ header:
   show: true
   show_states: true
 series:
-  - entity: binary_sensor.hdo
+  - entity: binary_sensor.egd_hdo_hdo_status # Depending how you named your device, find sensor *_hdo_status
     float_precision: 2
     group_by:
       func: avg
