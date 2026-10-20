@@ -12,6 +12,11 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.selector import (
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .const import (
     DOMAIN,
@@ -26,6 +31,7 @@ from .const import (
     CONF_UPDATE_INTERVAL,
     CONF_COLOR_VT,
     CONF_COLOR_NT,
+    CONF_PRICE_UNIT,
     CONFIG_TYPE_CLASSIC,
     CONFIG_TYPE_HDO_CODES,
     CONFIG_TYPE_SMART,
@@ -34,11 +40,21 @@ from .const import (
     DEFAULT_UPDATE_INTERVAL,
     DEFAULT_COLOR_VT,
     DEFAULT_COLOR_NT,
+    DEFAULT_PRICE_UNIT,
+    PRICE_UNIT_OPTIONS,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 API_REGION_URL = "https://hdo.distribuce24.cz/region"
+
+PRICE_UNIT_SELECTOR = SelectSelector(
+    SelectSelectorConfig(
+        options=PRICE_UNIT_OPTIONS,
+        custom_value=True,
+        mode=SelectSelectorMode.DROPDOWN,
+    )
+)
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
@@ -154,6 +170,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_CODE_DP): vol.In(code_dp_options),
                     vol.Optional(CONF_PRICE_VT, default=DEFAULT_PRICE_VT): cv.positive_float,
                     vol.Optional(CONF_PRICE_NT, default=DEFAULT_PRICE_NT): cv.positive_float,
+                    vol.Optional(CONF_PRICE_UNIT, default=DEFAULT_PRICE_UNIT): PRICE_UNIT_SELECTOR,
                     vol.Optional(
                         CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
                     ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
@@ -195,6 +212,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_HDO_CODE): cv.string,
                     vol.Optional(CONF_PRICE_VT, default=DEFAULT_PRICE_VT): cv.positive_float,
                     vol.Optional(CONF_PRICE_NT, default=DEFAULT_PRICE_NT): cv.positive_float,
+                    vol.Optional(CONF_PRICE_UNIT, default=DEFAULT_PRICE_UNIT): PRICE_UNIT_SELECTOR,
                     vol.Optional(
                         CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
                     ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
@@ -233,6 +251,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_HDO_CODE): cv.string,
                     vol.Optional(CONF_PRICE_VT, default=DEFAULT_PRICE_VT): cv.positive_float,
                     vol.Optional(CONF_PRICE_NT, default=DEFAULT_PRICE_NT): cv.positive_float,
+                    vol.Optional(CONF_PRICE_UNIT, default=DEFAULT_PRICE_UNIT): PRICE_UNIT_SELECTOR,
                     vol.Optional(
                         CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
                     ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
@@ -277,6 +296,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         current_color_nt = self._config_entry.options.get(
             CONF_COLOR_NT, self._config_entry.data.get(CONF_COLOR_NT, DEFAULT_COLOR_NT)
         )
+        current_price_unit = self._config_entry.options.get(
+            CONF_PRICE_UNIT, self._config_entry.data.get(CONF_PRICE_UNIT, DEFAULT_PRICE_UNIT)
+        )
 
         return self.async_show_form(
             step_id="init",
@@ -284,6 +306,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 {
                     vol.Optional(CONF_PRICE_VT, default=current_price_vt): cv.positive_float,
                     vol.Optional(CONF_PRICE_NT, default=current_price_nt): cv.positive_float,
+                    vol.Optional(CONF_PRICE_UNIT, default=current_price_unit): PRICE_UNIT_SELECTOR,
                     vol.Optional(CONF_COLOR_VT, default=current_color_vt): cv.string,
                     vol.Optional(CONF_COLOR_NT, default=current_color_nt): cv.string,
                 }

@@ -75,6 +75,7 @@ class HdoChartCard extends HTMLElement {
     const priceNt = parseFloat(attributes.price_nt || 3.0);
     const colorVt = attributes.color_vt || '#ff5252';
     const colorNt = attributes.color_nt || '#2196f3';
+    this._priceUnit = this._escapeHtml(attributes.price_unit || 'Kč/kWh');
     
     const remainingTime = attributes.remaining_time || '-';
 
@@ -250,7 +251,7 @@ class HdoChartCard extends HTMLElement {
           cursor: pointer;
           transition: opacity 0.2s;
         "
-        title="${label}: ${startTime} - ${endTime} (${block.price} Kč/kWh)"
+        title="${label}: ${startTime} - ${endTime} (${block.price} ${this._priceUnit})"
         onmouseover="this.style.opacity='0.8'"
         onmouseout="this.style.opacity='1'">
           ${width > 8 ? label : ''}
@@ -367,7 +368,7 @@ class HdoChartCard extends HTMLElement {
           cursor: pointer;
           transition: opacity 0.2s;
         "
-        title="${label}: ${startTime} - ${endTime} (${block.price} Kč/kWh)"
+        title="${label}: ${startTime} - ${endTime} (${block.price} ${this._priceUnit})"
         onmouseover="this.style.opacity='0.8'"
         onmouseout="this.style.opacity='1'">
           ${width > 8 ? label : ''}
@@ -419,16 +420,22 @@ class HdoChartCard extends HTMLElement {
     return `${h}:${m.toString().padStart(2, '0')}`;
   }
 
+  _escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+  }
+
   _renderLegend(priceVt, priceNt, colorVt, colorNt, remainingTime) {
     return `
       <div style="display: flex; gap: 16px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--divider-color); font-size: 12px;">
         <div style="display: flex; align-items: center; gap: 6px;">
           <div style="width: 16px; height: 16px; background: ${colorVt}; border-radius: 2px;"></div>
-          <span>VT (${priceVt} Kč/kWh)</span>
+          <span>VT (${priceVt} ${this._priceUnit})</span>
         </div>
         <div style="display: flex; align-items: center; gap: 6px;">
           <div style="width: 16px; height: 16px; background: ${colorNt}; border-radius: 2px;"></div>
-          <span>NT (${priceNt} Kč/kWh)</span>
+          <span>NT (${priceNt} ${this._priceUnit})</span>
         </div>
         <div style="display: flex; align-items: center; gap: 6px;">
          

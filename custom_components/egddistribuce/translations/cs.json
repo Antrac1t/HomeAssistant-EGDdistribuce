@@ -16,11 +16,15 @@
           "code_a": "Kód A (1-9)",
           "code_b": "Kód B (1-9)",
           "code_dp": "Kód DP (01-16)",
-          "price_vt": "Cena VT (vysoký tarif) Kč/kWh",
-          "price_nt": "Cena NT (nízký tarif) Kč/kWh",
+          "price_vt": "Cena VT (vysoký tarif)",
+          "price_nt": "Cena NT (nízký tarif)",
+          "price_unit": "Jednotka ceny",
           "update_interval": "Interval aktualizace (minuty)",
           "color_vt": "Barva VT (hex)",
           "color_nt": "Barva NT (hex)"
+        },
+        "data_description": {
+          "price_unit": "Jednotka cen VT/NT a senzoru Aktuální cena. Výchozí Kč/kWh, lze zadat i vlastní."
         }
       },
       "hdo_codes": {
@@ -29,14 +33,16 @@
         "data": {
           "psc": "PSČ",
           "hdo_code": "HDO kódy (oddělené čárkou)",
-          "price_vt": "Cena VT (vysoký tarif) Kč/kWh",
-          "price_nt": "Cena NT (nízký tarif) Kč/kWh",
+          "price_vt": "Cena VT (vysoký tarif)",
+          "price_nt": "Cena NT (nízký tarif)",
+          "price_unit": "Jednotka ceny",
           "update_interval": "Interval aktualizace (minuty)",
           "color_vt": "Barva VT (hex)",
           "color_nt": "Barva NT (hex)"
         },
         "data_description": {
-          "hdo_code": "Příklad: 405,406,410 nebo jen 405"
+          "hdo_code": "Příklad: 405,406,410 nebo jen 405",
+          "price_unit": "Jednotka cen VT/NT a senzoru Aktuální cena. Výchozí Kč/kWh, lze zadat i vlastní."
         }
       },
       "smart": {
@@ -44,14 +50,16 @@
         "description": "Zadejte kód vašeho chytrého měřiče (např. Cd56)",
         "data": {
           "hdo_code": "Kód smart metru",
-          "price_vt": "Cena VT (vysoký tarif) Kč/kWh",
-          "price_nt": "Cena NT (nízký tarif) Kč/kWh",
+          "price_vt": "Cena VT (vysoký tarif)",
+          "price_nt": "Cena NT (nízký tarif)",
+          "price_unit": "Jednotka ceny",
           "update_interval": "Interval aktualizace (minuty)",
           "color_vt": "Barva VT (hex)",
           "color_nt": "Barva NT (hex)"
         },
         "data_description": {
-          "hdo_code": "Příklad: Cd56, C55, D56"
+          "hdo_code": "Příklad: Cd56, C55, D56",
+          "price_unit": "Jednotka cen VT/NT a senzoru Aktuální cena. Výchozí Kč/kWh, lze zadat i vlastní."
         }
       }
     },
@@ -68,12 +76,16 @@
     "step": {
       "init": {
         "title": "Úprava nastavení",
-        "description": "Změňte ceny elektřiny pro výpočet nákladů",
+        "description": "Změňte ceny, jednotku a barvy tarifů",
         "data": {
-          "price_vt": "Cena VT (vysoký tarif) Kč/kWh",
-          "price_nt": "Cena NT (nízký tarif) Kč/kWh",
+          "price_vt": "Cena VT (vysoký tarif)",
+          "price_nt": "Cena NT (nízký tarif)",
+          "price_unit": "Jednotka ceny",
           "color_vt": "Barva VT (hex)",
           "color_nt": "Barva NT (hex)"
+        },
+        "data_description": {
+          "price_unit": "Jednotka cen VT/NT a senzoru Aktuální cena. Výchozí Kč/kWh, lze zadat i vlastní."
         }
       }
     }

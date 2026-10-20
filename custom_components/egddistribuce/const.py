@@ -14,6 +14,7 @@ CONF_CONFIG_TYPE = "config_type"  # Type of configuration
 CONF_UPDATE_INTERVAL = "update_interval"  # Update interval in minutes
 CONF_COLOR_VT = "color_vt"  # Color for high tariff (VT) in hex
 CONF_COLOR_NT = "color_nt"  # Color for low tariff (NT) in hex
+CONF_PRICE_UNIT = "price_unit"
 
 # Configuration types
 CONFIG_TYPE_CLASSIC = "classic"  # Classic A+B+DP
@@ -27,6 +28,8 @@ DEFAULT_NAME = "EGD HDO"
 DEFAULT_UPDATE_INTERVAL = 2  # minutes
 DEFAULT_COLOR_VT = "#ff5252"  # Red for high tariff
 DEFAULT_COLOR_NT = "#2196f3"  # Blue for low tariff
+DEFAULT_PRICE_UNIT = "Kč/kWh"
+PRICE_UNIT_OPTIONS = ["Kč/kWh", "Kč/MWh", "CZK/kWh", "CZK/MWh", "EUR/kWh", "EUR/MWh"]
 
 # Update interval (legacy - for backward compatibility)
 UPDATE_INTERVAL = 120  # seconds

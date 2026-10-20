@@ -44,7 +44,6 @@ class EGDDistribuceCurrentPriceSensor(CoordinatorEntity[EGDDistribuceCoordinator
     _attr_has_entity_name = True
     _attr_device_class = SensorDeviceClass.MONETARY
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_native_unit_of_measurement = "Kč/kWh"
     _attr_suggested_display_precision = 2
 
     def __init__(
@@ -57,6 +56,7 @@ class EGDDistribuceCurrentPriceSensor(CoordinatorEntity[EGDDistribuceCoordinator
         
         self._attr_unique_id = f"{entry.entry_id}_current_price"
         self._attr_translation_key = "current_price"
+        self._attr_native_unit_of_measurement = coordinator.price_unit
         
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},

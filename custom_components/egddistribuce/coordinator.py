@@ -51,6 +51,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         update_interval: int = 2,  # in minutes
         color_vt: str = "#ff5252",  # Red for high tariff
         color_nt: str = "#2196f3",  # Blue for low tariff
+        price_unit: str = "Kč/kWh",
     ):
         """Initialize coordinator."""
         super().__init__(
@@ -69,6 +70,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         self.price_vt = price_vt
         self.color_vt = color_vt
         self.color_nt = color_nt
+        self.price_unit = price_unit
         self.cz_holidays = holidays.country_holidays('CZ')
 
     async def _async_update_data(self) -> Dict[str, Any]:

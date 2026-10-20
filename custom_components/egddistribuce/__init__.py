@@ -23,6 +23,7 @@ from .const import (
     CONF_UPDATE_INTERVAL,
     CONF_COLOR_VT,
     CONF_COLOR_NT,
+    CONF_PRICE_UNIT,
     CONFIG_TYPE_CLASSIC,
     CONFIG_TYPE_HDO_CODES,
     CONFIG_TYPE_SMART,
@@ -31,6 +32,7 @@ from .const import (
     DEFAULT_UPDATE_INTERVAL,
     DEFAULT_COLOR_VT,
     DEFAULT_COLOR_NT,
+    DEFAULT_PRICE_UNIT,
 )
 from .coordinator import EGDDistribuceCoordinator
 
@@ -83,6 +85,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         CONF_COLOR_NT,
         entry.data.get(CONF_COLOR_NT, DEFAULT_COLOR_NT)
     )
+    price_unit = entry.options.get(
+        CONF_PRICE_UNIT,
+        entry.data.get(CONF_PRICE_UNIT, DEFAULT_PRICE_UNIT)
+    )
 
     # Get type-specific config
     psc = entry.data.get(CONF_PSC)
@@ -105,6 +111,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         update_interval=int(update_interval),
         color_vt=str(color_vt),
         color_nt=str(color_nt),
+        price_unit=str(price_unit),
     )
 
     # Fetch initial data
