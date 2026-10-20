@@ -45,6 +45,7 @@ class EGDDistribuceCurrentPriceSensor(CoordinatorEntity[EGDDistribuceCoordinator
     _attr_device_class = SensorDeviceClass.MONETARY
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "Kč/kWh"
+    _attr_suggested_display_precision = 2
 
     def __init__(
         self,
@@ -170,23 +171,16 @@ class EGDDistribuceNextChangeSensor(CoordinatorEntity[EGDDistribuceCoordinator],
         
         from datetime import datetime
         
-        hdo_times_today = self.coordinator.data.get("hdo_times_today", [])
-        current_time = datetime.now().time()
-        
-        # Find next time slot today
-        for slot in hdo_times_today:
-            try:
-                start_time = datetime.strptime(slot['od'], "%H:%M:%S").time()
-                if current_time < start_time:
-                    return f"{slot['od'].replace(':00', '')} - {slot['do'].replace(':00', '')}"
-            except ValueError:
+        now = datetime.now()
+        for interval in self.coordinator.data.get("hdo_intervals", []):
+            start = datetime.fromisoformat(interval["od"])
+            if start <= now:
                 continue
-        
-        # If no more today, show first tomorrow
-        hdo_times_tomorrow = self.coordinator.data.get("hdo_times_tomorrow", [])
-        if hdo_times_tomorrow:
-            first_slot = hdo_times_tomorrow[0]
-            return f"Zítra: {first_slot['od'].replace(':00', '')} - {first_slot['do'].replace(':00', '')}"
+            end = datetime.fromisoformat(interval["do"])
+            text = f"{start:%H:%M} - {end:%H:%M}"
+            if start.date() > now.date():
+                return f"Zítra: {text}"
+            return text
         
         return "Žádný plánovaný"
 
