@@ -68,10 +68,11 @@
     "step": {
       "init": {
         "title": "Úprava nastavení",
-        "description": "Změňte ceny elektřiny pro výpočet nákladů",
+        "description": "Změňte ceny, interval aktualizace a barvy tarifů",
         "data": {
           "price_vt": "Cena VT (vysoký tarif) Kč/kWh",
           "price_nt": "Cena NT (nízký tarif) Kč/kWh",
+          "update_interval": "Interval aktualizace (minuty)",
           "color_vt": "Barva VT (hex)",
           "color_nt": "Barva NT (hex)"
         }

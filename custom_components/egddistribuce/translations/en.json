@@ -68,10 +68,11 @@
     "step": {
       "init": {
         "title": "Adjust Settings",
-        "description": "Change electricity prices for cost calculation",
+        "description": "Change tariff prices, update interval and colors",
         "data": {
           "price_vt": "High tariff price (CZK/kWh)",
           "price_nt": "Low tariff price (CZK/kWh)",
+          "update_interval": "Update interval (minutes)",
           "color_vt": "High tariff color (hex)",
           "color_nt": "Low tariff color (hex)"
         }
