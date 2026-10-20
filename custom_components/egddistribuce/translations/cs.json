@@ -92,10 +92,10 @@
         "name": "Aktuální cena"
       },
       "remaining_time": {
-        "name": "Zbývající čas"
+        "name": "Zbývající čas do změny"
       },
       "next_change": {
-        "name": "Příští změna"
+        "name": "Další HDO čas"
       }
     }
   }

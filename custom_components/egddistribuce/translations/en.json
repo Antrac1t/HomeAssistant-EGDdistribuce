@@ -92,10 +92,10 @@
         "name": "Current Price"
       },
       "remaining_time": {
-        "name": "Remaining Time"
+        "name": "Time Until Change"
       },
       "next_change": {
-        "name": "Next Change"
+        "name": "Next HDO Slot"
       }
     }
   }

@@ -56,7 +56,7 @@ class EGDDistribuceCurrentPriceSensor(CoordinatorEntity[EGDDistribuceCoordinator
         super().__init__(coordinator)
         
         self._attr_unique_id = f"{entry.entry_id}_current_price"
-        self._attr_name = "Aktuální cena"
+        self._attr_translation_key = "current_price"
         
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
@@ -108,7 +108,7 @@ class EGDDistribuceRemainingTimeSensor(CoordinatorEntity[EGDDistribuceCoordinato
         super().__init__(coordinator)
         
         self._attr_unique_id = f"{entry.entry_id}_remaining_time"
-        self._attr_name = "Zbývající čas do změny"
+        self._attr_translation_key = "remaining_time"
         
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
@@ -153,7 +153,7 @@ class EGDDistribuceNextChangeSensor(CoordinatorEntity[EGDDistribuceCoordinator],
         super().__init__(coordinator)
         
         self._attr_unique_id = f"{entry.entry_id}_next_change"
-        self._attr_name = "Další HDO čas"
+        self._attr_translation_key = "next_change"
         
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
