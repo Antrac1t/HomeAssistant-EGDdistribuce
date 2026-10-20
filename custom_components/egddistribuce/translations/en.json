@@ -76,11 +76,12 @@
     "step": {
       "init": {
         "title": "Adjust Settings",
-        "description": "Change tariff prices, unit and colors",
+        "description": "Change tariff prices, unit, update interval and colors",
         "data": {
           "price_vt": "High tariff price (VT)",
           "price_nt": "Low tariff price (NT)",
           "price_unit": "Price unit",
+          "update_interval": "Update interval (minutes)",
           "color_vt": "High tariff color (hex)",
           "color_nt": "Low tariff color (hex)"
         },

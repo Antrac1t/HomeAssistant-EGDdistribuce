@@ -76,11 +76,12 @@
     "step": {
       "init": {
         "title": "Úprava nastavení",
-        "description": "Změňte ceny, jednotku a barvy tarifů",
+        "description": "Změňte ceny, jednotku, interval aktualizace a barvy tarifů",
         "data": {
           "price_vt": "Cena VT (vysoký tarif)",
           "price_nt": "Cena NT (nízký tarif)",
           "price_unit": "Jednotka ceny",
+          "update_interval": "Interval aktualizace (minuty)",
           "color_vt": "Barva VT (hex)",
           "color_nt": "Barva NT (hex)"
         },
