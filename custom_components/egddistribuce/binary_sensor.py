@@ -110,6 +110,7 @@ class EGDDistribuceBinarySensor(CoordinatorEntity[EGDDistribuceCoordinator], Bin
         # Add raw time data for automations
         attributes["hdo_times_today_raw"] = hdo_times_today
         attributes["hdo_times_tomorrow_raw"] = hdo_times_tomorrow
+        attributes["hdo_intervals"] = self.coordinator.data.get("hdo_intervals", [])
 
         return attributes
 

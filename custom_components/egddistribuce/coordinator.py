@@ -172,10 +172,14 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         """Zparsovat HDO časy z filtrovaných záznamů."""
         date_now = datetime.now().date()
         date_tomorrow = date_now + timedelta(days=1)
+        date_yesterday = date_now - timedelta(days=1)
+        date_after_tomorrow = date_now + timedelta(days=2)
         current_month = datetime.now().month
         
+        hdo_times_yesterday = []
         hdo_times_today = []
         hdo_times_tomorrow = []
+        hdo_times_after_tomorrow = []
         
         _LOGGER.debug(f"Parsing {len(filtered_records)} records for date={date_now}")
         
@@ -219,6 +223,16 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
                 for day in sazba.get('dny', []):
                     day_code = day['denVTydnu']
                     
+                    # Včera - potřeba pro noční blok, který začal před půlnocí
+                    if self._is_matching_day(date_yesterday, day_code):
+                        for cas in day.get('casy', []):
+                            hdo_times_yesterday.append({'od': cas['od'], 'do': cas['do']})
+                    
+                    # Pozítří - potřeba pro konec zítřejšího nočního bloku
+                    if self._is_matching_day(date_after_tomorrow, day_code):
+                        for cas in day.get('casy', []):
+                            hdo_times_after_tomorrow.append({'od': cas['od'], 'do': cas['do']})
+                    
                     # Dnes
                     if self._is_matching_day(date_now, day_code):
                         for cas in day.get('casy', []):
@@ -242,9 +256,18 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         # API časy znamenají kdy JE nízký tarif (NT), ne HDO signál
         is_tou = region == 'TOU'
         
-        # Zjistit aktuální stav a zbývající čas
-        current_time = datetime.now().time()
-        is_in_time_slot = self._is_time_active(current_time, hdo_times_today)
+        # Absolutní intervaly sloučené přes půlnoc (např. 20:00-23:59 + 00:00-04:00 = 20:00-04:00)
+        intervals = self._build_intervals([
+            (date_yesterday, hdo_times_yesterday),
+            (date_now, hdo_times_today),
+            (date_tomorrow, hdo_times_tomorrow),
+            (date_after_tomorrow, hdo_times_after_tomorrow),
+        ])
+        horizon = datetime.combine(date_after_tomorrow, time(0))
+        intervals = [i for i in intervals if i[0] < horizon]
+        now = datetime.now()
+        current_interval = next((i for i in intervals if i[0] <= now < i[1]), None)
+        is_in_time_slot = current_interval is not None
         
         # Určit cenu a stav podle typu
         if is_tou:
@@ -258,7 +281,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             # Status: Zapnuto = HDO signál aktivní
             is_active = is_in_time_slot
         
-        remaining_time = self._calculate_remaining_time(current_time, hdo_times_today, hdo_times_tomorrow, is_tou)
+        remaining_time = self._calculate_remaining_time(now, intervals, current_interval)
         
         # Vygenerovat HDO_HOURLY pro dalších 24 hodin
         HDO_HOURLY = self._generate_hdo_hourly(hdo_times_today, hdo_times_tomorrow, is_tou)
@@ -267,6 +290,10 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             "is_active": is_active,
             "hdo_times_today": hdo_times_today,
             "hdo_times_tomorrow": hdo_times_tomorrow,
+            "hdo_intervals": [
+                {"od": start.isoformat(), "do": end.isoformat()}
+                for start, end in intervals
+            ],
             "current_price": current_price,
             "remaining_time": remaining_time,
             "region": region,
@@ -312,98 +339,43 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         
         return False
 
-    def _calculate_remaining_time(self, current_time: time, hdo_times_today: list, hdo_times_tomorrow: list, is_tou: bool = False) -> str:
-        """Vypočítat zbývající čas do změny HDO.
-        
-        Args:
-            is_tou: Pokud True, časy jsou invertované (značí kdy JE NT, ne HDO signál)
-        """
-        now = datetime.now()
-        
-        # Pro TOU zjistit jestli jsme MIMO slot (= jsme v NT)
-        is_in_slot = self._is_time_active(current_time, hdo_times_today)
-        
-        if is_tou:
-            # Pro TOU: pokud jsme VE slotu, jsme v NT, zbývá do konce NT
-            # Pokud jsme MIMO slot, jsme ve VT, zbývá do začátku NT
-            if is_in_slot:
-                # Jsme v NT - najít konec slotu
-                for slot in hdo_times_today:
-                    try:
-                        start = datetime.strptime(slot['od'], "%H:%M:%S").time()
-                        end = datetime.strptime(slot['do'], "%H:%M:%S").time()
-                        
-                        if slot['do'].endswith(':59:00'):
-                            end = (datetime.combine(datetime.today(), end) + timedelta(minutes=1)).time()
-                        
-                        if start <= current_time < end:
-                            end_datetime = datetime.combine(now.date(), end)
-                            remaining = end_datetime - now
-                            hours, remainder = divmod(remaining.seconds, 3600)
-                            minutes = remainder // 60
-                            return f"{hours}:{minutes:02d}"
-                    except ValueError:
-                        continue
+    def _build_intervals(self, days: list) -> list:
+        """Převést sloty (datum, [{'od','do'}]) na seřazené, sloučené datetime intervaly."""
+        intervals = []
+        for date, slots in days:
+            for slot in slots:
+                try:
+                    start = datetime.combine(date, datetime.strptime(slot['od'], "%H:%M:%S").time())
+                    end = datetime.combine(date, datetime.strptime(slot['do'], "%H:%M:%S").time())
+                except ValueError:
+                    continue
+                # API používá xx:59:00 jako konec hodiny (23:59:00 = půlnoc)
+                if slot['do'].endswith(':59:00'):
+                    end += timedelta(minutes=1)
+                if end <= start:
+                    end += timedelta(days=1)
+                intervals.append((start, end))
+
+        merged = []
+        for start, end in sorted(intervals):
+            if merged and start <= merged[-1][1]:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], end))
             else:
-                # Jsme ve VT - najít začátek dalšího NT slotu
-                for slot in hdo_times_today:
-                    try:
-                        start = datetime.strptime(slot['od'], "%H:%M:%S").time()
-                        if start > current_time:
-                            start_datetime = datetime.combine(now.date(), start)
-                            remaining = start_datetime - now
-                            hours, remainder = divmod(remaining.seconds, 3600)
-                            minutes = remainder // 60
-                            return f"{hours}:{minutes:02d}"
-                    except ValueError:
-                        continue
+                merged.append((start, end))
+        return merged
+
+    def _calculate_remaining_time(self, now: datetime, intervals: list, current_interval: tuple | None) -> str:
+        """Vypočítat zbývající čas do změny HDO (konec aktuálního nebo začátek dalšího intervalu)."""
+        if current_interval is not None:
+            target = current_interval[1]
         else:
-            # Klasické HDO - pokud je aktivní, najít konec
-            if is_in_slot:
-                for slot in hdo_times_today:
-                    try:
-                        start = datetime.strptime(slot['od'], "%H:%M:%S").time()
-                        end = datetime.strptime(slot['do'], "%H:%M:%S").time()
-                        
-                        if slot['do'].endswith(':59:00'):
-                            end = (datetime.combine(datetime.today(), end) + timedelta(minutes=1)).time()
-                        
-                        if start <= current_time < end:
-                            end_datetime = datetime.combine(now.date(), end)
-                            remaining = end_datetime - now
-                            hours, remainder = divmod(remaining.seconds, 3600)
-                            minutes = remainder // 60
-                            return f"{hours}:{minutes:02d}"
-                    except ValueError:
-                        continue
-            else:
-                # HDO není aktivní - najít začátek dalšího slotu
-                for slot in hdo_times_today:
-                    try:
-                        start = datetime.strptime(slot['od'], "%H:%M:%S").time()
-                        if start > current_time:
-                            start_datetime = datetime.combine(now.date(), start)
-                            remaining = start_datetime - now
-                            hours, remainder = divmod(remaining.seconds, 3600)
-                            minutes = remainder // 60
-                            return f"{hours}:{minutes:02d}"
-                    except ValueError:
-                        continue
-        
-        # Žádný další slot dnes - vrátit čas do prvního slotu zítra
-        if hdo_times_tomorrow:
-            try:
-                first_tomorrow = datetime.strptime(hdo_times_tomorrow[0]['od'], "%H:%M:%S").time()
-                tomorrow = now.date() + timedelta(days=1)
-                next_datetime = datetime.combine(tomorrow, first_tomorrow)
-                remaining = next_datetime - now
-                hours, remainder = divmod(remaining.seconds, 3600)
-                minutes = remainder // 60
-                return f"{hours}:{minutes:02d}"
-            except ValueError:
-                pass
-        
-        return "N/A"
+            target = next((start for start, _ in intervals if start > now), None)
+            if target is None:
+                return "N/A"
+
+        total_minutes = int((target - now).total_seconds()) // 60
+        hours, minutes = divmod(total_minutes, 60)
+        return f"{hours}:{minutes:02d}"
 
     def _generate_hdo_hourly(self, hdo_times_today: list, hdo_times_tomorrow: list, is_tou: bool = False) -> dict:
         """Vygenerovat HDO_HOURLY atribut - 15minutové intervaly na 48 hodin (dnes + zítra).
