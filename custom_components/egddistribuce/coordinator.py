@@ -79,20 +79,20 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Fetch data from API."""
-
+        
         if self.cz_holidays is None:
             self.cz_holidays = await self.hass.async_add_executor_job(holidays.CZ)
         
         now = datetime.now()
         need_api_refresh = (self.cached_filtered is None or self.last_successful_update is None or now - self.last_successful_update >= self.api_update_interval)
-
+        
         try:
             async with async_timeout.timeout(30):
                 if need_api_refresh:
                     async with aiohttp.ClientSession() as session:
                         # Krok 1: Stáhnout HDO data
                         hdo_data = await self._fetch_hdo_data(session)
-
+                        
                         # Krok 2: Najít relevantní záznamy podle typu konfigurace
                         if self.config_type == CONFIG_TYPE_CLASSIC:
                             filtered = await self._filter_classic(session, hdo_data)
@@ -100,14 +100,14 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
                             filtered = await self._filter_hdo_codes(session, hdo_data)
                         else:  # CONFIG_TYPE_SMART
                             filtered = self._filter_smart(hdo_data)
-
+                        
                         self.cached_filtered = filtered                                            
                         if not self.last_update_cached:                    
                             self.last_successful_update = now
-
+                
                 # Krok 3: Zparsovat časy z filtrovaných záznamů
                 return self._parse_times(self.cached_filtered)  
-
+        
         except Exception as err:
             raise UpdateFailed(f"Error fetching data: {err}")
 
@@ -130,19 +130,20 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             file="region",   # uloží se do cache/region.json
         )
 
+            
         region_records = [x for x in data if x.get('PSC') == self.psc]
         if not region_records:
             raise UpdateFailed(f"Region not found for PSČ: {self.psc}")
-
+        
         # Vrátit první unikátní region
         return region_records[0]['Region']
 
     async def _filter_classic(self, session: aiohttp.ClientSession, hdo_data: list) -> list:
         """VARIANTA 1: Classic - PSČ + A + B + DP"""
         region = await self._fetch_region(session)
-
+        
         _LOGGER.debug(f"Classic filter: region={region}, A={self.code_a}, B={self.code_b}, DP={self.code_dp}")
-
+        
         filtered = [
             x for x in hdo_data
             if x.get('region') == region
@@ -150,7 +151,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             and x.get('B') == self.code_b
             and (x.get('DP') == self.code_dp or x.get('DP') == '0' + self.code_dp)
         ]
-
+        
         _LOGGER.debug(f"Classic filter: found {len(filtered)} records")
         return filtered
 
@@ -158,9 +159,9 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         """VARIANTA 2: HDO Codes - PSČ + seznam kódů (405,406,410)"""
         region = await self._fetch_region(session)
         codes = [c.strip() for c in self.hdo_code.split(',')]
-
+        
         _LOGGER.debug(f"HDO Codes filter: region={region}, codes={codes}")
-
+        
         filtered = []
         for code in codes:
             matches = [
@@ -169,19 +170,19 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
                 and x.get('kodHdo_A') == code
             ]
             filtered.extend(matches)
-
+        
         _LOGGER.debug(f"HDO Codes filter: found {len(filtered)} records")
         return filtered
 
     def _filter_smart(self, hdo_data: list) -> list:
         """VARIANTA 3: Smart - jen kodHdo_A (Cd56), žádný region"""
         _LOGGER.debug(f"Smart filter: code={self.hdo_code}")
-
+        
         filtered = [
             x for x in hdo_data
             if x.get('kodHdo_A') == self.hdo_code
         ]
-
+        
         _LOGGER.debug(f"Smart filter: found {len(filtered)} records")
         return filtered
 
@@ -192,19 +193,19 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         date_yesterday = date_now - timedelta(days=1)
         date_after_tomorrow = date_now + timedelta(days=2)
         current_month = datetime.now().month
-
+        
         hdo_times_yesterday = []
         hdo_times_today = []
         hdo_times_tomorrow = []
         hdo_times_after_tomorrow = []
-
+        
         _LOGGER.debug(f"Parsing {len(filtered_records)} records for date={date_now}")
-
+        
         for record in filtered_records:
             od_year = int(record['od']['rok'])
             od_month = int(record['od']['mesic'])
             do_month = int(record['do']['mesic'])
-
+            
             # Kontrola platnosti záznamu
             if od_year == 9999:
                 # Pattern který se opakuje každý rok (např. léto/zima)
@@ -220,59 +221,59 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
                 # Konkrétní rok - validace přes datum
                 current_year = datetime.now().year
                 do_year = int(record['do']['rok'])
-
+                
                 if od_year < current_year and od_month > current_month:
                     current_year = current_year - 1
                 if do_year < od_year:
                     do_year = do_year + 1
-
+                
                 try:
                     date_od = datetime(current_year, od_month, int(record['od']['den'])).date()
                     date_do = datetime(do_year, do_month, int(record['do']['den'])).date()
                 except ValueError:
                     continue
-
+                
                 if not (date_od <= date_now <= date_do):
                     continue
-
+            
             # Záznam je platný - zparsovat časy
             for sazba in record.get('sazby', []):
                 for day in sazba.get('dny', []):
                     day_code = day['denVTydnu']
-
+                    
                     # Včera - potřeba pro noční blok, který začal před půlnocí
                     if self._is_matching_day(date_yesterday, day_code):
                         for cas in day.get('casy', []):
                             hdo_times_yesterday.append({'od': cas['od'], 'do': cas['do']})
-
+                    
                     # Pozítří - potřeba pro konec zítřejšího nočního bloku
                     if self._is_matching_day(date_after_tomorrow, day_code):
                         for cas in day.get('casy', []):
                             hdo_times_after_tomorrow.append({'od': cas['od'], 'do': cas['do']})
-
+                    
                     # Dnes
                     if self._is_matching_day(date_now, day_code):
                         for cas in day.get('casy', []):
                             hdo_times_today.append({'od': cas['od'], 'do': cas['do']})
-
+                    
                     # Zítra
                     if self._is_matching_day(date_tomorrow, day_code):
                         for cas in day.get('casy', []):
                             hdo_times_tomorrow.append({'od': cas['od'], 'do': cas['do']})
-
+        
         # Seřadit časy
         hdo_times_today = sorted(hdo_times_today, key=lambda x: x['od'])
         hdo_times_tomorrow = sorted(hdo_times_tomorrow, key=lambda x: x['od'])
-
+        
         _LOGGER.debug(f"Found {len(hdo_times_today)} slots today, {len(hdo_times_tomorrow)} tomorrow")
-
+        
         # Získat region z prvního záznamu (pokud existuje)
         region = filtered_records[0].get('region', 'N/A') if filtered_records else 'N/A'
-
+        
         # Pro TOU (Time of Use) tariffy jsou časy INVERTOVANÉ
         # API časy znamenají kdy JE nízký tarif (NT), ne HDO signál
         is_tou = region == 'TOU'
-
+        
         # Absolutní intervaly sloučené přes půlnoc (např. 20:00-23:59 + 00:00-04:00 = 20:00-04:00)
         intervals = self._build_intervals([
             (date_yesterday, hdo_times_yesterday),
@@ -285,7 +286,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         now = datetime.now()
         current_interval = next((i for i in intervals if i[0] <= now < i[1]), None)
         is_in_time_slot = current_interval is not None
-
+        
         # Určit cenu a stav podle typu
         if is_tou:
             # TOU: časy = kdy JE NT
@@ -297,12 +298,12 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             current_price = self.price_nt if is_in_time_slot else self.price_vt
             # Status: Zapnuto = HDO signál aktivní
             is_active = is_in_time_slot
-
+        
         remaining_time = self._calculate_remaining_time(now, intervals, current_interval)
-
+        
         # Vygenerovat HDO_HOURLY pro dalších 24 hodin
         HDO_HOURLY = self._generate_hdo_hourly(hdo_times_today, hdo_times_tomorrow, is_tou)
-
+        
         return {
             "is_active": is_active,
             "hdo_times_today": hdo_times_today,
@@ -320,15 +321,15 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
     def _is_matching_day(self, date: datetime.date, day_code: int) -> bool:
         """Kontrola zda datum odpovídá kódu dne."""
         is_holiday = date in self.cz_holidays
-
+        
         # Svátek = neděle
         if is_holiday and day_code == 7:
             return True
-
+        
         # Pracovní den
         if not is_holiday and date.isoweekday() == day_code:
             return True
-
+        
         return False
 
     def _is_time_active(self, current_time: time, hdo_times: list) -> bool:
@@ -337,7 +338,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             try:
                 start = datetime.strptime(slot['od'], "%H:%M:%S").time()
                 end = datetime.strptime(slot['do'], "%H:%M:%S").time()
-
+                
                 # Speciální případ: 23:59:00 znamená konec dne (23:59:59)
                 if slot['do'] == '23:59:00':
                     # Kontrola: start <= current_time <= 23:59:59
@@ -348,12 +349,12 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
                     # Fix pro ostatní časy končící :59:00 (měly by být :00:00 další hodiny)
                     if slot['do'].endswith(':59:00'):
                         end = (datetime.combine(datetime.today(), end) + timedelta(minutes=1)).time()
-
+                    
                     if start <= current_time < end:
                         return True
             except ValueError:
                 continue
-
+        
         return False
 
     def _build_intervals(self, days: list) -> list:
@@ -396,7 +397,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
 
     def _generate_hdo_hourly(self, hdo_times_today: list, hdo_times_tomorrow: list, is_tou: bool = False) -> dict:
         """Vygenerovat HDO_HOURLY atribut - 15minutové intervaly na 48 hodin (dnes + zítra).
-
+        
         Args:
             is_tou: Pokud True, časy jsou invertované (značí kdy JE NT, ne HDO signál)
         """
@@ -404,39 +405,39 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         result = {}
         date_today = now.date()
         date_tomorrow = date_today + timedelta(days=1)
-
+        
         # Generovat dnes (96 intervalů = 24 hodin * 4)
         for i in range(96):
             timestamp = datetime.combine(date_today, time(hour=0)) + timedelta(minutes=i * 15)
             time_check = timestamp.time()
-
+            
             is_in_slot = self._is_time_active(time_check, hdo_times_today)
-
+            
             # Pro TOU: ve slotu = NT, mimo slot = VT
             # Pro klasické HDO: ve slotu = NT (HDO aktivní)
             if is_tou:
                 price = self.price_nt if is_in_slot else self.price_vt
             else:
                 price = self.price_nt if is_in_slot else self.price_vt
-
+            
             # Použít datetime objekt jako klíč (bez timezone) - kompatibilní se starou verzí
             result[timestamp] = float(price)
-
+        
         # Generovat zítra (96 intervalů = 24 hodin * 4)
         for i in range(96):
             timestamp = datetime.combine(date_tomorrow, time(hour=0)) + timedelta(minutes=i * 15)
             time_check = timestamp.time()
-
+            
             is_in_slot = self._is_time_active(time_check, hdo_times_tomorrow)
-
+            
             # Pro TOU: ve slotu = NT, mimo slot = VT
             # Pro klasické HDO: ve slotu = NT (HDO aktivní)
             if is_tou:
                 price = self.price_nt if is_in_slot else self.price_vt
             else:
                 price = self.price_nt if is_in_slot else self.price_vt
-
+            
             # Použít datetime objekt jako klíč (bez timezone) - kompatibilní se starou verzí
             result[timestamp] = float(price)
-
+        
         return result

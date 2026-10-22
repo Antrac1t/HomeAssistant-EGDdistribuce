@@ -15,7 +15,7 @@ class Download:
     @staticmethod
     def _get_cache_dir(hass) -> Path:
         """
-        Vrati cestu .storage/<DOMAIN>/ kde se ulozi stazene soubory.
+        Vrátí cestu .storage/<DOMAIN>/ kde se uloží stažené soubory.
         """
         return Path(hass.config.path(".storage", DOMAIN))
 
