@@ -24,7 +24,7 @@ CONFIG_TYPE_SMART = "smart"  # Smart meter
 DEFAULT_PRICE_NT = 1.0
 DEFAULT_PRICE_VT = 2.0
 DEFAULT_NAME = "EGD HDO"
-DEFAULT_UPDATE_INTERVAL = 2  # minutes
+DEFAULT_UPDATE_INTERVAL = 30  # minutes
 DEFAULT_COLOR_VT = "#ff5252"  # Red for high tariff
 DEFAULT_COLOR_NT = "#2196f3"  # Blue for low tariff
 
