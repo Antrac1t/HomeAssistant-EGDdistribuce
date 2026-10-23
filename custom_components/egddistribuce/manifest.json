@@ -9,5 +9,5 @@
   "issue_tracker": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce/issues",
   "quality_scale": "silver",
   "requirements": ["aiohttp", "holidays"],
-  "version": "V0.7.0.1"
+  "version": "V0.8.0.0"
 }
