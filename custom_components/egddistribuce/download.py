@@ -6,18 +6,18 @@ from typing import Any
 
 import aiohttp
 from homeassistant.helpers.update_coordinator import UpdateFailed
+from .const import DOMAIN
 
 
 class Download:
     """Sdílená utilita pro stahování JSON dat s cache fallbackem."""
 
     @staticmethod
-    def _get_cache_dir() -> Path:
+    def _get_cache_dir(hass) -> Path:
         """
-        Vrátí cestu <integrace>/cache/ automaticky podle umístění souboru.
+        Vrátí cestu .storage/<DOMAIN>/ kde se uloží stažené soubory.
         """
-        integration_dir = Path(__file__).resolve().parent
-        return integration_dir / "cache"
+        return Path(hass.config.path(".storage", DOMAIN))
 
     @staticmethod
     async def get_json(
@@ -31,7 +31,7 @@ class Download:
         Při chybě vrátí poslední uložená data.
         """
 
-        cache_dir = Download._get_cache_dir()
+        cache_dir = Download._get_cache_dir(hass)
         cache_file = cache_dir / f"{file}.json"
 
         def _write_json(path: Path, data: Any) -> None:
@@ -52,11 +52,11 @@ class Download:
                 data = await response.json()
 
             await hass.async_add_executor_job(_write_json, cache_file, data)
-            return data
+            return data, False
 
         except (aiohttp.ClientError, asyncio.TimeoutError, Exception) as err:
             try:
-                return await hass.async_add_executor_job(_read_json, cache_file)
+                return await hass.async_add_executor_job(_read_json, cache_file), True
             except FileNotFoundError:
                 raise UpdateFailed(
                     f"Download selhal a cache neexistuje: {url}"

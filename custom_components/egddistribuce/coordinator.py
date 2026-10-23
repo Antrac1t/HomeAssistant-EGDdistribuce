@@ -31,7 +31,8 @@ API_REGION_URL = "https://hdo.distribuce24.cz/region"
 API_HDO_URL = "https://hdo.distribuce24.cz/casy"
 
 # Default update interval (can be overridden in config)
-DEFAULT_UPDATE_INTERVAL = timedelta(minutes=2)
+DEFAULT_API_UPDATE_INTERVAL_MIN = 30
+UPDATE_INTERVAL = timedelta(minutes=1)
 
 
 class EGDDistribuceCoordinator(DataUpdateCoordinator):
@@ -48,7 +49,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         hdo_code: str = None,
         price_nt: float = 1.5,
         price_vt: float = 2.5,
-        update_interval: int = 2,  # in minutes
+        update_interval: int = DEFAULT_API_UPDATE_INTERVAL_MIN,  # in minutes
         color_vt: str = "#ff5252",  # Red for high tariff
         color_nt: str = "#2196f3",  # Blue for low tariff
     ):
@@ -57,7 +58,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(minutes=update_interval),
+            update_interval=UPDATE_INTERVAL,
         )
         self.config_type = config_type
         self.psc = psc
@@ -69,43 +70,60 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         self.price_vt = price_vt
         self.color_vt = color_vt
         self.color_nt = color_nt
-        self.cz_holidays = holidays.country_holidays('CZ')
+        self.cz_holidays = None
+        self.last_successful_update = None
+        self.last_update_cached = False
+        self.cached_filtered = None
+        # původní uživatelsky nastavitelný interval
+        self.api_update_interval = timedelta(minutes=update_interval)
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Fetch data from API."""
+        
+        if self.cz_holidays is None:
+            self.cz_holidays = await self.hass.async_add_executor_job(holidays.CZ)
+        
+        now = datetime.now()
+        need_api_refresh = (self.cached_filtered is None or self.last_successful_update is None or now - self.last_successful_update >= self.api_update_interval)
+        
         try:
             async with async_timeout.timeout(30):
-                async with aiohttp.ClientSession() as session:
-                    # Krok 1: Stáhnout HDO data
-                    hdo_data = await self._fetch_hdo_data(session)
-                    
-                    # Krok 2: Najít relevantní záznamy podle typu konfigurace
-                    if self.config_type == CONFIG_TYPE_CLASSIC:
-                        filtered = await self._filter_classic(session, hdo_data)
-                    elif self.config_type == CONFIG_TYPE_HDO_CODES:
-                        filtered = await self._filter_hdo_codes(session, hdo_data)
-                    else:  # CONFIG_TYPE_SMART
-                        filtered = self._filter_smart(hdo_data)
-                    
-                    # Krok 3: Zparsovat časy z filtrovaných záznamů
-                    return self._parse_times(filtered)
-                    
+                if need_api_refresh:
+                    async with aiohttp.ClientSession() as session:
+                        # Krok 1: Stáhnout HDO data
+                        hdo_data = await self._fetch_hdo_data(session)
+                        
+                        # Krok 2: Najít relevantní záznamy podle typu konfigurace
+                        if self.config_type == CONFIG_TYPE_CLASSIC:
+                            filtered = await self._filter_classic(session, hdo_data)
+                        elif self.config_type == CONFIG_TYPE_HDO_CODES:
+                            filtered = await self._filter_hdo_codes(session, hdo_data)
+                        else:  # CONFIG_TYPE_SMART
+                            filtered = self._filter_smart(hdo_data)
+                        
+                        self.cached_filtered = filtered                                            
+                        if not self.last_update_cached:                    
+                            self.last_successful_update = now
+                
+                # Krok 3: Zparsovat časy z filtrovaných záznamů
+                return self._parse_times(self.cached_filtered)  
+        
         except Exception as err:
             raise UpdateFailed(f"Error fetching data: {err}")
 
     async def _fetch_hdo_data(self, session: aiohttp.ClientSession) -> list:
         """Stáhnout HDO data z API."""
-        return await Download.get_json(
+        data, self.last_update_cached = await Download.get_json(
             hass=self.hass,
             session=session,
             url=API_HDO_URL,
             file="hdo",   # uloží se do cache/hdo.json
         )
-
+        return data
 
     async def _fetch_region(self, session: aiohttp.ClientSession) -> str:
-        """Zjistit region z PSČ."""        
-        data = await Download.get_json(
+        """Zjistit region z PSČ."""
+        data, self.last_update_cached = await Download.get_json(
             hass=self.hass,
             session=session,
             url=API_REGION_URL,

@@ -17,6 +17,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import EGDDistribuceCoordinator
+from .entity import EGDBaseEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,12 +39,12 @@ async def async_setup_entry(
     async_add_entities(sensors)
 
 
-class EGDDistribuceCurrentPriceSensor(CoordinatorEntity[EGDDistribuceCoordinator], SensorEntity):
+class EGDDistribuceCurrentPriceSensor(EGDBaseEntity, SensorEntity):
     """Sensor for current electricity price."""
 
     _attr_has_entity_name = True
     _attr_device_class = SensorDeviceClass.MONETARY
-    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_state_class = None
     _attr_native_unit_of_measurement = "Kč/kWh"
     _attr_suggested_display_precision = 2
 
@@ -93,7 +94,7 @@ class EGDDistribuceCurrentPriceSensor(CoordinatorEntity[EGDDistribuceCoordinator
         }
 
 
-class EGDDistribuceRemainingTimeSensor(CoordinatorEntity[EGDDistribuceCoordinator], SensorEntity):
+class EGDDistribuceRemainingTimeSensor(EGDBaseEntity, SensorEntity):
     """Sensor for remaining time until next tariff change."""
 
     _attr_has_entity_name = True
@@ -138,7 +139,7 @@ class EGDDistribuceRemainingTimeSensor(CoordinatorEntity[EGDDistribuceCoordinato
         }
 
 
-class EGDDistribuceNextChangeSensor(CoordinatorEntity[EGDDistribuceCoordinator], SensorEntity):
+class EGDDistribuceNextChangeSensor(EGDBaseEntity, SensorEntity):
     """Sensor for next HDO time slot."""
 
     _attr_has_entity_name = True

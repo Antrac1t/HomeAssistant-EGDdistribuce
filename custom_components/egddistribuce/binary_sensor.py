@@ -12,9 +12,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.entity import EntityCategory
 
 from .const import DOMAIN
 from .coordinator import EGDDistribuceCoordinator
+from .entity import EGDBaseEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,11 +31,12 @@ async def async_setup_entry(
 
     async_add_entities([
         EGDDistribuceBinarySensor(coordinator, entry),
-        EGDDistribuceTimesChangeBinarySensor(coordinator, entry)
+        EGDDistribuceTimesChangeBinarySensor(coordinator, entry),
+        EGDDistribuceUpdateStatusBinarySensor(coordinator, entry)
     ])
 
 
-class EGDDistribuceBinarySensor(CoordinatorEntity[EGDDistribuceCoordinator], BinarySensorEntity):
+class EGDDistribuceBinarySensor(EGDBaseEntity, BinarySensorEntity):
     """Representation of an EGD Distribuce HDO binary sensor."""
 
     _attr_has_entity_name = True
@@ -114,13 +117,9 @@ class EGDDistribuceBinarySensor(CoordinatorEntity[EGDDistribuceCoordinator], Bin
 
         return attributes
 
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        return self.coordinator.last_update_success and self.coordinator.data is not None
 
 
-class EGDDistribuceTimesChangeBinarySensor(CoordinatorEntity[EGDDistribuceCoordinator], BinarySensorEntity):
+class EGDDistribuceTimesChangeBinarySensor(EGDBaseEntity, BinarySensorEntity):
     """Binary sensor indicating if HDO times change between today and tomorrow."""
 
     _attr_has_entity_name = True
@@ -202,7 +201,49 @@ class EGDDistribuceTimesChangeBinarySensor(CoordinatorEntity[EGDDistribuceCoordi
             "times_tomorrow": format_times(hdo_times_tomorrow),
         }
 
+
+class EGDDistribuceUpdateStatusBinarySensor(EGDBaseEntity, BinarySensorEntity):
+    """API update status."""
+
+    _attr_has_entity_name = True
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator)
+
+        self._attr_unique_id = f"{entry.entry_id}_update_status"
+        self._attr_translation_key = "update_status"
+
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, entry.entry_id)},
+            "name": entry.title,
+            "manufacturer": "EGD Distribuce",
+            "model": "HDO",
+            "entry_type": "service",
+        }
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.last_update_success and not self.coordinator.last_update_cached
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if self.coordinator.last_update_success:
+            if self.coordinator.last_update_cached:
+                state = "cache"
+            else:
+                state = "online"
+        else:
+            state = "offline"
+        return {
+            "status": state,
+            "last_update": self.coordinator.last_successful_update,
+            "update_interval_min": int(self.coordinator.update_interval.total_seconds() / 60),
+            "api_update_interval_min": int(self.coordinator.api_update_interval.total_seconds() / 60)
+        }
+
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        return self.coordinator.last_update_success and self.coordinator.data is not None
+        return True
