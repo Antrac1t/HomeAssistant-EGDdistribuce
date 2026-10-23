@@ -52,11 +52,11 @@ Zadávaný kód musí odpovídat formátu v https://hdo.distribuce24.cz/casy (v�
 ## 🎯 Funkce
   - Aktuální cena elektřiny
 
-  - Zbývající čas do změny tarifu
+  - Čas příští změny tarifu (timestamp sensor, frontend zobrazí odpočet)
 
   - Příští HDO časový slot## Installation
 
--  Automatické Aktualizace - Data se obnovují každé 2 minuty (možnost změnit v nastavení 1-60)
+-  Automatické Aktualizace - HDO rozvrh se stahuje z API jednou za hodinu (interval je pevný, v `coordinator.py` konstanta `API_UPDATE_INTERVAL`). Stav HDO se přepíná přesně v okamžiku změny, bez pravidelného dotazování. Při výpadku API se použije cache a za 5 minut se zkusí nové stažení. Data lze stáhnout ihned tlačítkem **Obnovit data z API**.
 
 -  Detailní Atributy - Časy dnes/zítra, začátky, konce, region, ceny
 
@@ -120,6 +120,8 @@ show_header: false
 
 ```
 
+Texty karty se překládají podle jazyka Home Assistantu. Překlady jsou v `custom_components/egddistribuce/hdo_card_translations/<jazyk>.json` (zatím `cs` a `en`, ostatní jazyky použijí angličtinu). Nový jazyk stačí přidat jako další soubor.
+
 
 
 
@@ -174,12 +176,18 @@ series:
 Since spot prices are (at the moment) hourly and HDO can be in 15 minute increments, for the graph to work well, both entities must have the same interval duration. Function `group_by` takes care of it. In this example it groups by 1 hour, because that works for me well. In your case, maybe `30minutes` or even `15minutes` might be equired.
 
 
-adding remaining time in GUI page
+Čas příští změny HDO na dashboardu (frontend ho zobrazí jako živý relativní čas, např. „za 23 minut“):
 ```yaml
-  - entity: binary_sensor.hdo_nizky_tarif
-    name: Zbývající čas
-    type: attribute
-    attribute: remaining_time
+  - entity: sensor.hdo_next_hdo_change # timestamp sensor, název závisí na pojmenování zařízení
+    name: Další změna
+    format: relative
+```
+
+Sensor `Time Until Change` a atribut `remaining_time` byly odstraněny (měnily se každou minutu a zaplňovaly logbook). Použijte timestamp sensor `Next HDO Change`. Dá se s ním spouštět i automatizace přesně v okamžiku přepnutí:
+```yaml
+trigger:
+  - trigger: time
+    at: sensor.hdo_next_hdo_change
 ```
 
 ### Step 3: Restart HA

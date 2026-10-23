@@ -28,7 +28,6 @@ from .const import (
     CONF_PRICE_NT,
     CONF_PRICE_VT,
     CONF_CONFIG_TYPE,
-    CONF_UPDATE_INTERVAL,
     CONF_COLOR_VT,
     CONF_COLOR_NT,
     CONF_PRICE_UNIT,
@@ -37,7 +36,6 @@ from .const import (
     CONFIG_TYPE_SMART,
     DEFAULT_PRICE_NT,
     DEFAULT_PRICE_VT,
-    DEFAULT_UPDATE_INTERVAL,
     DEFAULT_COLOR_VT,
     DEFAULT_COLOR_NT,
     DEFAULT_PRICE_UNIT,
@@ -119,12 +117,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(
                         CONF_CONFIG_TYPE, default=CONFIG_TYPE_CLASSIC
-                    ): vol.In(
-                        {
-                            CONFIG_TYPE_CLASSIC: "Klasické HDO (A+B+DP)",
-                            CONFIG_TYPE_HDO_CODES: "Více HDO příkazů (kódy)",
-                            CONFIG_TYPE_SMART: "Smart metr (speciální přístroje)",
-                        }
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                CONFIG_TYPE_CLASSIC,
+                                CONFIG_TYPE_HDO_CODES,
+                                CONFIG_TYPE_SMART,
+                            ],
+                            translation_key="config_type",
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
                     ),
                 }
             ),
@@ -171,9 +173,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(CONF_PRICE_VT, default=DEFAULT_PRICE_VT): cv.positive_float,
                     vol.Optional(CONF_PRICE_NT, default=DEFAULT_PRICE_NT): cv.positive_float,
                     vol.Optional(CONF_PRICE_UNIT, default=DEFAULT_PRICE_UNIT): PRICE_UNIT_SELECTOR,
-                    vol.Optional(
-                        CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
                     vol.Optional(CONF_COLOR_VT, default=DEFAULT_COLOR_VT): cv.string,
                     vol.Optional(CONF_COLOR_NT, default=DEFAULT_COLOR_NT): cv.string,
                 }
@@ -213,9 +212,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(CONF_PRICE_VT, default=DEFAULT_PRICE_VT): cv.positive_float,
                     vol.Optional(CONF_PRICE_NT, default=DEFAULT_PRICE_NT): cv.positive_float,
                     vol.Optional(CONF_PRICE_UNIT, default=DEFAULT_PRICE_UNIT): PRICE_UNIT_SELECTOR,
-                    vol.Optional(
-                        CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
                     vol.Optional(CONF_COLOR_VT, default=DEFAULT_COLOR_VT): cv.string,
                     vol.Optional(CONF_COLOR_NT, default=DEFAULT_COLOR_NT): cv.string,
                 }
@@ -252,9 +248,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(CONF_PRICE_VT, default=DEFAULT_PRICE_VT): cv.positive_float,
                     vol.Optional(CONF_PRICE_NT, default=DEFAULT_PRICE_NT): cv.positive_float,
                     vol.Optional(CONF_PRICE_UNIT, default=DEFAULT_PRICE_UNIT): PRICE_UNIT_SELECTOR,
-                    vol.Optional(
-                        CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
                     vol.Optional(CONF_COLOR_VT, default=DEFAULT_COLOR_VT): cv.string,
                     vol.Optional(CONF_COLOR_NT, default=DEFAULT_COLOR_NT): cv.string,
                 }

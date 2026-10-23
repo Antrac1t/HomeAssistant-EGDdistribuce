@@ -1,5 +1,67 @@
+const TRANSLATIONS_URL = '/egddistribuce_card/hdo_card_translations';
+const DEFAULT_LANGUAGE = 'en';
+const translationCache = new Map();
+
+async function fetchTranslations(language) {
+  try {
+    const response = await fetch(`${TRANSLATIONS_URL}/${language}.json`);
+    return response.ok ? await response.json() : {};
+  } catch (err) {
+    return {};
+  }
+}
+
+// Translations are loaded once per language and shared by all card instances; missing keys fall back to English
+function loadTranslations(language) {
+  if (!translationCache.has(language)) {
+    translationCache.set(language, (async () => {
+      const fallback = await fetchTranslations(DEFAULT_LANGUAGE);
+      if (language === DEFAULT_LANGUAGE) {
+        return fallback;
+      }
+      return { ...fallback, ...(await fetchTranslations(language)) };
+    })());
+  }
+  return translationCache.get(language);
+}
+
 class HdoChartCard extends HTMLElement {
+  _locale() {
+    const locale = this._hass?.locale?.language || DEFAULT_LANGUAGE;
+    try {
+      return Intl.getCanonicalLocales(locale)[0];
+    } catch (err) {
+      return DEFAULT_LANGUAGE;
+    }
+  }
+
+  _language() {
+    const language = this._locale().split('-')[0].toLowerCase();
+    return /^[a-z]{2,3}$/.test(language) ? language : DEFAULT_LANGUAGE;
+  }
+
+  _t(key) {
+    return this._translations?.[key] ?? key;
+  }
+
   set hass(hass) {
+    this._hass = hass;
+
+    const language = this._language();
+    if (this._translationsLanguage !== language) {
+      this._translationsLanguage = language;
+      this._translations = null;
+      loadTranslations(language).then((translations) => {
+        if (this._translationsLanguage === language) {
+          this._translations = translations;
+          this.hass = this._hass;
+        }
+      });
+    }
+    if (!this._translations) {
+      return;
+    }
+
     if (!this.content) {
       const card = document.createElement('ha-card');
       // Nastavit header pouze pokud show_header není false
@@ -51,6 +113,28 @@ class HdoChartCard extends HTMLElement {
     const showDays = this.config.show_days || 1; 
     
     this.content.innerHTML = this._renderChart(hdoData, showDays, stateObj.attributes);
+    this._startCountdown(stateObj.attributes.next_change);
+  }
+
+  _startCountdown(nextChangeIso) {
+    this._nextChange = nextChangeIso ? new Date(nextChangeIso) : null;
+    if (this._countdownTimer) {
+      return;
+    }
+    // The attribute doesn't change every minute, so the countdown ticks in the browser
+    this._countdownTimer = setInterval(() => {
+      const el = this.querySelector('.hdo-remaining');
+      if (el) {
+        el.textContent = this._formatRemaining(this._nextChange);
+      }
+    }, 15000);
+  }
+
+  disconnectedCallback() {
+    if (this._countdownTimer) {
+      clearInterval(this._countdownTimer);
+      this._countdownTimer = null;
+    }
   }
 
   _parseHdoData(hdoHourly) {
@@ -77,7 +161,8 @@ class HdoChartCard extends HTMLElement {
     const colorNt = attributes.color_nt || '#2196f3';
     this._priceUnit = this._escapeHtml(attributes.price_unit || 'Kč/kWh');
     
-    const remainingTime = attributes.remaining_time || '-';
+    const nextChange = attributes.next_change ? new Date(attributes.next_change) : null;
+    const remainingTime = this._formatRemaining(nextChange);
 
     const hdoTimesToday = attributes.hdo_times_today_raw || [];
     const hdoTimesTomorrow = attributes.hdo_times_tomorrow_raw || [];
@@ -91,8 +176,8 @@ class HdoChartCard extends HTMLElement {
     
 
     if (showDays >= 1) {
-      const dayLabel = 'Dnes';
-      const dateStr = today.toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'short' });
+      const dayLabel = this._t('today');
+      const dateStr = today.toLocaleDateString(this._locale(), { weekday: 'short', day: 'numeric', month: 'short' });
       
       html += `
         <div style="margin-bottom: 24px;">
@@ -108,8 +193,8 @@ class HdoChartCard extends HTMLElement {
     if (showDays >= 2) {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const dayLabel = 'Zítra';
-      const dateStr = tomorrow.toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'short' });
+      const dayLabel = this._t('tomorrow');
+      const dateStr = tomorrow.toLocaleDateString(this._locale(), { weekday: 'short', day: 'numeric', month: 'short' });
       
       html += `
         <div style="margin-bottom: 24px;">
@@ -231,7 +316,7 @@ class HdoChartCard extends HTMLElement {
       const left = (block.start / 24) * 100;
       const width = ((block.end - block.start) / 24) * 100;
       const color = block.isVt ? colorVt : colorNt;
-      const label = block.isVt ? 'VT' : 'NT';
+      const label = block.isVt ? this._t('high_tariff_short') : this._t('low_tariff_short');
       const startTime = this._formatHour(block.start);
       const endTime = this._formatHour(block.end);
       const title = this._escapeHtml(`${label}: ${startTime} - ${endTime} (${block.price} ${this._priceUnit})`);
@@ -277,7 +362,7 @@ class HdoChartCard extends HTMLElement {
           box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
           z-index: 3;
         "
-        title="Aktuální čas: ${this._formatHour(currentHour)}">
+        title="${this._t('current_time')}: ${this._formatHour(currentHour)}">
         </div>
       `;
     }
@@ -349,7 +434,7 @@ class HdoChartCard extends HTMLElement {
       const left = (block.start / 24) * 100;
       const width = ((block.end - block.start) / 24) * 100;
       const color = block.isVt ? colorVt : colorNt;
-      const label = block.isVt ? 'VT' : 'NT';
+      const label = block.isVt ? this._t('high_tariff_short') : this._t('low_tariff_short');
       const startTime = this._formatHour(block.start);
       const endTime = this._formatHour(block.end);
       const title = this._escapeHtml(`${label}: ${startTime} - ${endTime} (${block.price} ${this._priceUnit})`);
@@ -395,7 +480,7 @@ class HdoChartCard extends HTMLElement {
           box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
           z-index: 3;
         "
-        title="Aktuální čas: ${this._formatHour(currentHour)}">
+        title="${this._t('current_time')}: ${this._formatHour(currentHour)}">
         </div>
       `;
     }
@@ -428,19 +513,29 @@ class HdoChartCard extends HTMLElement {
     }[c]));
   }
 
+  _formatRemaining(target) {
+    if (!target || isNaN(target)) {
+      return '-';
+    }
+    const totalMinutes = Math.max(0, Math.floor((target - new Date()) / 60000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = String(totalMinutes % 60).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+
   _renderLegend(priceVt, priceNt, colorVt, colorNt, remainingTime) {
     return `
       <div style="display: flex; gap: 16px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--divider-color); font-size: 12px;">
         <div style="display: flex; align-items: center; gap: 6px;">
           <div style="width: 16px; height: 16px; background: ${colorVt}; border-radius: 2px;"></div>
-          <span>VT (${priceVt} ${this._priceUnit})</span>
+          <span>${this._t('high_tariff_short')} (${priceVt} ${this._priceUnit})</span>
         </div>
         <div style="display: flex; align-items: center; gap: 6px;">
           <div style="width: 16px; height: 16px; background: ${colorNt}; border-radius: 2px;"></div>
-          <span>NT (${priceNt} ${this._priceUnit})</span>
+          <span>${this._t('low_tariff_short')} (${priceNt} ${this._priceUnit})</span>
         </div>
         <div style="display: flex; align-items: center; gap: 6px;">
-          <span>Další změna za: ${remainingTime}</span>
+          <span>${this._t('next_change_in')}: <span class="hdo-remaining">${remainingTime}</span></span>
         </div>
       </div>
     `;

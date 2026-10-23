@@ -20,7 +20,6 @@ from .const import (
     CONF_PRICE_NT,
     CONF_PRICE_VT,
     CONF_CONFIG_TYPE,
-    CONF_UPDATE_INTERVAL,
     CONF_COLOR_VT,
     CONF_COLOR_NT,
     CONF_PRICE_UNIT,
@@ -29,7 +28,6 @@ from .const import (
     CONFIG_TYPE_SMART,
     DEFAULT_PRICE_NT,
     DEFAULT_PRICE_VT,
-    DEFAULT_UPDATE_INTERVAL,
     DEFAULT_COLOR_VT,
     DEFAULT_COLOR_NT,
     DEFAULT_PRICE_UNIT,
@@ -38,18 +36,23 @@ from .coordinator import EGDDistribuceCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SENSOR]
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the EGD Distribuce component."""
-    # Register custom Lovelace card
+    # Register custom Lovelace card and its translations
     await hass.http.async_register_static_paths([
         StaticPathConfig(
             url_path="/egddistribuce_card/hdo-chart-card.js",
             path=hass.config.path(f"custom_components/{DOMAIN}/hdo_chart_card.js"),
             cache_headers=True,
-        )
+        ),
+        StaticPathConfig(
+            url_path="/egddistribuce_card/hdo_card_translations",
+            path=hass.config.path(f"custom_components/{DOMAIN}/hdo_card_translations"),
+            cache_headers=False,
+        ),
     ])
     
     _LOGGER.info("Registered HDO Chart Card at /egddistribuce_card/hdo-chart-card.js")
@@ -72,10 +75,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     price_vt = entry.options.get(
         CONF_PRICE_VT,
         entry.data.get(CONF_PRICE_VT, DEFAULT_PRICE_VT)
-    )
-    update_interval = entry.options.get(
-        CONF_UPDATE_INTERVAL,
-        entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
     )
     color_vt = entry.options.get(
         CONF_COLOR_VT,
@@ -108,11 +107,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hdo_code=hdo_code,
         price_nt=float(price_nt),
         price_vt=float(price_vt),
-        update_interval=int(update_interval),
         color_vt=str(color_vt),
         color_nt=str(color_nt),
         price_unit=str(price_unit),
     )
+
+    # Cancel the coordinator's own timers on unload/reload
+    entry.async_on_unload(coordinator.async_shutdown)
 
     # Fetch initial data
     await coordinator.async_config_entry_first_refresh()

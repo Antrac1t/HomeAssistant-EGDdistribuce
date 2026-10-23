@@ -1,14 +1,16 @@
 """Coordinator for EGD Distribuce integration."""
 from datetime import datetime, timedelta, time
 import logging
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 import aiohttp
 import async_timeout
 import holidays
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.event import async_call_later, async_track_point_in_time
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 from .download import Download
 
 try:
@@ -30,9 +32,12 @@ _LOGGER = logging.getLogger(__name__)
 API_REGION_URL = "https://hdo.distribuce24.cz/region"
 API_HDO_URL = "https://hdo.distribuce24.cz/casy"
 
-# Default update interval (can be overridden in config)
-DEFAULT_API_UPDATE_INTERVAL_MIN = 30
-UPDATE_INTERVAL = timedelta(minutes=1)
+# How often the HDO schedule is downloaded from the API
+API_UPDATE_INTERVAL = timedelta(hours=1)
+# Retry delay when the API failed and cached data is being used
+RETRY_DELAY = timedelta(minutes=5)
+# Margin after an interval boundary so that start <= now < end already holds
+BOUNDARY_MARGIN = timedelta(seconds=1)
 
 
 class EGDDistribuceCoordinator(DataUpdateCoordinator):
@@ -49,17 +54,18 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         hdo_code: str = None,
         price_nt: float = 1.5,
         price_vt: float = 2.5,
-        update_interval: int = DEFAULT_API_UPDATE_INTERVAL_MIN,  # in minutes
         color_vt: str = "#ff5252",  # Red for high tariff
         color_nt: str = "#2196f3",  # Blue for low tariff
         price_unit: str = "Kč/kWh",
     ):
         """Initialize coordinator."""
+        # Polling only downloads data from the API. The HDO state switch is
+        # handled by a dedicated timer scheduled on the next interval boundary.
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=UPDATE_INTERVAL,
+            update_interval=API_UPDATE_INTERVAL,
         )
         self.config_type = config_type
         self.psc = psc
@@ -75,9 +81,70 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         self.last_successful_update = None
         self.last_update_cached = False
         self.cached_filtered = None
-        # původní uživatelsky nastavitelný interval
-        self.api_update_interval = timedelta(minutes=update_interval)
         self.price_unit = price_unit
+        self._boundary_unsub: Callable[[], None] | None = None
+        self._retry_unsub: Callable[[], None] | None = None
+
+    @staticmethod
+    def _now() -> datetime:
+        """Return the current time in the HA time zone as a naive datetime (same as HDO intervals)."""
+        return dt_util.now().replace(tzinfo=None)
+
+    async def async_shutdown(self) -> None:
+        """Cancel own timers and shut the coordinator down."""
+        self._cancel_boundary()
+        self._cancel_retry()
+        await super().async_shutdown()
+
+    def _cancel_boundary(self) -> None:
+        if self._boundary_unsub is not None:
+            self._boundary_unsub()
+            self._boundary_unsub = None
+
+    def _cancel_retry(self) -> None:
+        if self._retry_unsub is not None:
+            self._retry_unsub()
+            self._retry_unsub = None
+
+    def _schedule_boundary(self, data: Dict[str, Any]) -> None:
+        """Schedule a recalculation on the next HDO change or midnight, whichever comes first."""
+        midnight = dt_util.start_of_local_day(dt_util.now().date() + timedelta(days=1))
+        boundary = midnight
+        next_change = data.get("next_change")
+        if next_change is not None and next_change < midnight:
+            boundary = next_change
+        self._schedule_recalculation(boundary + BOUNDARY_MARGIN)
+
+    def _schedule_recalculation(self, when: datetime) -> None:
+        self._cancel_boundary()
+        self._boundary_unsub = async_track_point_in_time(
+            self.hass, self._async_boundary_reached, when
+        )
+
+    @callback
+    def _async_boundary_reached(self, _now: datetime) -> None:
+        """Recalculate the HDO state from cached data (no network) and notify entities."""
+        self._boundary_unsub = None
+        if self.cached_filtered is None:
+            return
+        try:
+            data = self._parse_times(self.cached_filtered, self._now())
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Failed to recalculate HDO state, retrying in 1 minute")
+            self._schedule_recalculation(dt_util.now() + timedelta(minutes=1))
+            return
+        # Don't use async_set_updated_data - it would restart the API polling schedule
+        self.data = data
+        self.async_update_listeners()
+        self._schedule_boundary(data)
+
+    def _schedule_retry(self) -> None:
+        self._cancel_retry()
+        self._retry_unsub = async_call_later(self.hass, RETRY_DELAY, self._async_retry)
+
+    async def _async_retry(self, _now: datetime) -> None:
+        self._retry_unsub = None
+        await self.async_refresh()
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Fetch data from API."""
@@ -85,33 +152,40 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         if self.cz_holidays is None:
             self.cz_holidays = await self.hass.async_add_executor_job(holidays.CZ)
         
-        now = datetime.now()
-        need_api_refresh = (self.cached_filtered is None or self.last_successful_update is None or now - self.last_successful_update >= self.api_update_interval)
+        now = self._now()
         
         try:
             async with async_timeout.timeout(30):
-                if need_api_refresh:
-                    async with aiohttp.ClientSession() as session:
-                        # Krok 1: Stáhnout HDO data
-                        hdo_data = await self._fetch_hdo_data(session)
-                        
-                        # Krok 2: Najít relevantní záznamy podle typu konfigurace
-                        if self.config_type == CONFIG_TYPE_CLASSIC:
-                            filtered = await self._filter_classic(session, hdo_data)
-                        elif self.config_type == CONFIG_TYPE_HDO_CODES:
-                            filtered = await self._filter_hdo_codes(session, hdo_data)
-                        else:  # CONFIG_TYPE_SMART
-                            filtered = self._filter_smart(hdo_data)
-                        
-                        self.cached_filtered = filtered                                            
-                        if not self.last_update_cached:                    
-                            self.last_successful_update = now
+                async with aiohttp.ClientSession() as session:
+                    # Krok 1: Stáhnout HDO data
+                    hdo_data = await self._fetch_hdo_data(session)
+                    
+                    # Krok 2: Najít relevantní záznamy podle typu konfigurace
+                    if self.config_type == CONFIG_TYPE_CLASSIC:
+                        filtered = await self._filter_classic(session, hdo_data)
+                    elif self.config_type == CONFIG_TYPE_HDO_CODES:
+                        filtered = await self._filter_hdo_codes(session, hdo_data)
+                    else:  # CONFIG_TYPE_SMART
+                        filtered = self._filter_smart(hdo_data)
+                    
+                    self.cached_filtered = filtered
+                    if not self.last_update_cached:
+                        self.last_successful_update = now
                 
                 # Krok 3: Zparsovat časy z filtrovaných záznamů
-                return self._parse_times(self.cached_filtered)  
+                data = self._parse_times(self.cached_filtered, now)
         
         except Exception as err:
+            if self.data is not None:
+                self._schedule_retry()
             raise UpdateFailed(f"Error fetching data: {err}")
+
+        if self.last_update_cached:
+            self._schedule_retry()
+        else:
+            self._cancel_retry()
+        self._schedule_boundary(data)
+        return data
 
     async def _fetch_hdo_data(self, session: aiohttp.ClientSession) -> list:
         """Stáhnout HDO data z API."""
@@ -188,13 +262,13 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         _LOGGER.debug(f"Smart filter: found {len(filtered)} records")
         return filtered
 
-    def _parse_times(self, filtered_records: list) -> Dict[str, Any]:
+    def _parse_times(self, filtered_records: list, now: datetime) -> Dict[str, Any]:
         """Zparsovat HDO časy z filtrovaných záznamů."""
-        date_now = datetime.now().date()
+        date_now = now.date()
         date_tomorrow = date_now + timedelta(days=1)
         date_yesterday = date_now - timedelta(days=1)
         date_after_tomorrow = date_now + timedelta(days=2)
-        current_month = datetime.now().month
+        current_month = now.month
         
         hdo_times_yesterday = []
         hdo_times_today = []
@@ -221,7 +295,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
                         continue
             else:
                 # Konkrétní rok - validace přes datum
-                current_year = datetime.now().year
+                current_year = now.year
                 do_year = int(record['do']['rok'])
                 
                 if od_year < current_year and od_month > current_month:
@@ -285,7 +359,6 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         ])
         horizon = datetime.combine(date_after_tomorrow, time(0))
         intervals = [i for i in intervals if i[0] < horizon]
-        now = datetime.now()
         current_interval = next((i for i in intervals if i[0] <= now < i[1]), None)
         is_in_time_slot = current_interval is not None
         
@@ -301,10 +374,12 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             # Status: Zapnuto = HDO signál aktivní
             is_active = is_in_time_slot
         
-        remaining_time = self._calculate_remaining_time(now, intervals, current_interval)
+        next_change = self._get_next_change(now, intervals, current_interval)
+        # Naive HA-local time -> tz-aware (the timestamp sensor requires a timezone)
+        next_change = next_change.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE) if next_change else None
         
         # Vygenerovat HDO_HOURLY pro dalších 24 hodin
-        HDO_HOURLY = self._generate_hdo_hourly(hdo_times_today, hdo_times_tomorrow, is_tou)
+        HDO_HOURLY = self._generate_hdo_hourly(hdo_times_today, hdo_times_tomorrow, now, is_tou)
         
         return {
             "is_active": is_active,
@@ -315,7 +390,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
                 for start, end in intervals
             ],
             "current_price": current_price,
-            "remaining_time": remaining_time,
+            "next_change": next_change,
             "region": region,
             "HDO_HOURLY": HDO_HOURLY,
         }
@@ -384,26 +459,19 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
                 merged.append((start, end))
         return merged
 
-    def _calculate_remaining_time(self, now: datetime, intervals: list, current_interval: tuple | None) -> str:
-        """Vypočítat zbývající čas do změny HDO (konec aktuálního nebo začátek dalšího intervalu)."""
+    @staticmethod
+    def _get_next_change(now: datetime, intervals: list, current_interval: tuple | None) -> datetime | None:
+        """Find the moment of the next HDO change (end of the current interval or start of the next one)."""
         if current_interval is not None:
-            target = current_interval[1]
-        else:
-            target = next((start for start, _ in intervals if start > now), None)
-            if target is None:
-                return "N/A"
+            return current_interval[1]
+        return next((start for start, _ in intervals if start > now), None)
 
-        total_minutes = int((target - now).total_seconds()) // 60
-        hours, minutes = divmod(total_minutes, 60)
-        return f"{hours}:{minutes:02d}"
-
-    def _generate_hdo_hourly(self, hdo_times_today: list, hdo_times_tomorrow: list, is_tou: bool = False) -> dict:
+    def _generate_hdo_hourly(self, hdo_times_today: list, hdo_times_tomorrow: list, now: datetime, is_tou: bool = False) -> dict:
         """Vygenerovat HDO_HOURLY atribut - 15minutové intervaly na 48 hodin (dnes + zítra).
         
         Args:
             is_tou: Pokud True, časy jsou invertované (značí kdy JE NT, ne HDO signál)
         """
-        now = datetime.now()
         result = {}
         date_today = now.date()
         date_tomorrow = date_today + timedelta(days=1)

@@ -16,15 +16,14 @@
           "code_a": "Code A (1-9)",
           "code_b": "Code B (1-9)",
           "code_dp": "Code DP (01-16)",
-          "price_vt": "High tariff price (VT)",
-          "price_nt": "Low tariff price (NT)",
+          "price_vt": "High tariff price (peak, HT)",
+          "price_nt": "Low tariff price (off-peak, NT)",
           "price_unit": "Price unit",
-          "update_interval": "Update interval (minutes)",
-          "color_vt": "High tariff color (hex)",
-          "color_nt": "Low tariff color (hex)"
+          "color_vt": "High tariff color (HT, hex)",
+          "color_nt": "Low tariff color (NT, hex)"
         },
         "data_description": {
-          "price_unit": "Unit of the VT/NT prices and the Current Price sensor. Defaults to Kč/kWh; a custom value can be entered."
+          "price_unit": "Unit of the HT/NT prices and the Current Price sensor. Defaults to Kč/kWh; a custom value can be entered."
         }
       },
       "hdo_codes": {
@@ -33,16 +32,15 @@
         "data": {
           "psc": "Postal code",
           "hdo_code": "HDO codes (comma-separated)",
-          "price_vt": "High tariff price (VT)",
-          "price_nt": "Low tariff price (NT)",
+          "price_vt": "High tariff price (peak, HT)",
+          "price_nt": "Low tariff price (off-peak, NT)",
           "price_unit": "Price unit",
-          "update_interval": "Update interval (minutes)",
-          "color_vt": "High tariff color (hex)",
-          "color_nt": "Low tariff color (hex)"
+          "color_vt": "High tariff color (HT, hex)",
+          "color_nt": "Low tariff color (NT, hex)"
         },
         "data_description": {
           "hdo_code": "Example: 405,406,410 or just 405",
-          "price_unit": "Unit of the VT/NT prices and the Current Price sensor. Defaults to Kč/kWh; a custom value can be entered."
+          "price_unit": "Unit of the HT/NT prices and the Current Price sensor. Defaults to Kč/kWh; a custom value can be entered."
         }
       },
       "smart": {
@@ -50,16 +48,15 @@
         "description": "Enter your smart meter code (e.g. Cd56)",
         "data": {
           "hdo_code": "Smart meter code",
-          "price_vt": "High tariff price (VT)",
-          "price_nt": "Low tariff price (NT)",
+          "price_vt": "High tariff price (peak, HT)",
+          "price_nt": "Low tariff price (off-peak, NT)",
           "price_unit": "Price unit",
-          "update_interval": "Update interval (minutes)",
-          "color_vt": "High tariff color (hex)",
-          "color_nt": "Low tariff color (hex)"
+          "color_vt": "High tariff color (HT, hex)",
+          "color_nt": "Low tariff color (NT, hex)"
         },
         "data_description": {
           "hdo_code": "Example: Cd56, C55, D56",
-          "price_unit": "Unit of the VT/NT prices and the Current Price sensor. Defaults to Kč/kWh; a custom value can be entered."
+          "price_unit": "Unit of the HT/NT prices and the Current Price sensor. Defaults to Kč/kWh; a custom value can be entered."
         }
       }
     },
@@ -78,19 +75,33 @@
         "title": "Adjust Settings",
         "description": "Change tariff prices, unit and colors",
         "data": {
-          "price_vt": "High tariff price (VT)",
-          "price_nt": "Low tariff price (NT)",
+          "price_vt": "High tariff price (peak, HT)",
+          "price_nt": "Low tariff price (off-peak, NT)",
           "price_unit": "Price unit",
-          "color_vt": "High tariff color (hex)",
-          "color_nt": "Low tariff color (hex)"
+          "color_vt": "High tariff color (HT, hex)",
+          "color_nt": "Low tariff color (NT, hex)"
         },
         "data_description": {
-          "price_unit": "Unit of the VT/NT prices and the Current Price sensor. Defaults to Kč/kWh; a custom value can be entered."
+          "price_unit": "Unit of the HT/NT prices and the Current Price sensor. Defaults to Kč/kWh; a custom value can be entered."
         }
       }
     }
   },
+  "selector": {
+    "config_type": {
+      "options": {
+        "classic": "Classic HDO (A+B+DP)",
+        "hdo_codes": "Multiple HDO commands (codes)",
+        "smart": "Smart meter (special devices)"
+      }
+    }
+  },
   "entity": {
+    "button": {
+      "refresh_api": {
+        "name": "Refresh API data"
+      }
+    },
     "binary_sensor": {
       "hdo_status": {
         "name": "HDO Status"
@@ -106,8 +117,8 @@
       "current_price": {
         "name": "Current Price"
       },
-      "remaining_time": {
-        "name": "Time Until Change"
+      "next_hdo_change": {
+        "name": "Next HDO Change"
       },
       "next_change": {
         "name": "Next HDO Slot"

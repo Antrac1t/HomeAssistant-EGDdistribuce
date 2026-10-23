@@ -95,12 +95,13 @@ class EGDDistribuceBinarySensor(EGDBaseEntity, BinarySensorEntity):
                 formatted.append(f"{start}-{end}")
             return ", ".join(formatted)
 
+        next_change = self.coordinator.data.get("next_change")
         attributes = {
             "hdo_times_today": format_times(hdo_times_today),
             "hdo_times_tomorrow": format_times(hdo_times_tomorrow),
             "hdo_cas_od": [slot['od'] for slot in hdo_times_today],
             "hdo_cas_do": [slot['do'] for slot in hdo_times_today],
-            "remaining_time": self.coordinator.data.get("remaining_time", "N/A"),
+            "next_change": next_change.isoformat() if next_change else None,
             "current_price": self.coordinator.data.get("current_price", 0),
             "region": self.coordinator.data.get("region", "N/A"),
             "price_vt": self.coordinator.price_vt,
@@ -240,8 +241,6 @@ class EGDDistribuceUpdateStatusBinarySensor(EGDBaseEntity, BinarySensorEntity):
         return {
             "status": state,
             "last_update": self.coordinator.last_successful_update,
-            "update_interval_min": int(self.coordinator.update_interval.total_seconds() / 60),
-            "api_update_interval_min": int(self.coordinator.api_update_interval.total_seconds() / 60)
         }
 
     @property
