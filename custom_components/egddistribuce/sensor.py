@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -11,8 +12,10 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CURRENCY_EURO
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import EGDDistribuceCoordinator
@@ -29,9 +32,17 @@ async def async_setup_entry(
     """Set up EGD Distribuce sensors from a config entry."""
     coordinator: EGDDistribuceCoordinator = hass.data[DOMAIN][entry.entry_id]
 
+    # Remove the retired "Time Until Change" entity so it does not linger as unavailable
+    registry = er.async_get(hass)
+    old_entity_id = registry.async_get_entity_id(
+        "sensor", DOMAIN, f"{entry.entry_id}_remaining_time"
+    )
+    if old_entity_id:
+        registry.async_remove(old_entity_id)
+
     sensors = [
         EGDDistribuceCurrentPriceSensor(coordinator, entry),
-        EGDDistribuceRemainingTimeSensor(coordinator, entry),
+        EGDDistribuceNextChangeTimeSensor(coordinator, entry),
         EGDDistribuceNextChangeSensor(coordinator, entry),
     ]
 
@@ -93,11 +104,12 @@ class EGDDistribuceCurrentPriceSensor(EGDBaseEntity, SensorEntity):
         }
 
 
-class EGDDistribuceRemainingTimeSensor(EGDBaseEntity, SensorEntity):
-    """Sensor for remaining time until next tariff change."""
+class EGDDistribuceNextChangeTimeSensor(EGDBaseEntity, SensorEntity):
+    """Timestamp of the next HDO status change (relative time is rendered by the frontend)."""
 
     _attr_has_entity_name = True
-    _attr_icon = "mdi:clock-outline"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:clock-end"
 
     def __init__(
         self,
@@ -106,10 +118,10 @@ class EGDDistribuceRemainingTimeSensor(EGDBaseEntity, SensorEntity):
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        
-        self._attr_unique_id = f"{entry.entry_id}_remaining_time"
-        self._attr_translation_key = "remaining_time"
-        
+
+        self._attr_unique_id = f"{entry.entry_id}_next_hdo_change"
+        self._attr_translation_key = "next_hdo_change"
+
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
             "name": entry.title,
@@ -119,22 +131,23 @@ class EGDDistribuceRemainingTimeSensor(EGDBaseEntity, SensorEntity):
         }
 
     @property
-    def native_value(self) -> str | None:
-        """Return the remaining time."""
+    def native_value(self) -> datetime | None:
+        """Return when the HDO status changes next."""
         if self.coordinator.data is None:
             return None
-        return self.coordinator.data.get("remaining_time", "N/A")
+        return self.coordinator.data.get("next_change")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         if self.coordinator.data is None:
             return {}
-        
+
+        # Machine-readable tariff codes: "nt" (low) / "vt" (high)
         is_active = self.coordinator.data.get("is_active", False)
         return {
-            "current_state": "Nízký tarif (NT)" if is_active else "Vysoký tarif (VT)",
-            "next_state": "Vysoký tarif (VT)" if is_active else "Nízký tarif (NT)",
+            "current_tariff": "nt" if is_active else "vt",
+            "next_tariff": "vt" if is_active else "nt",
         }
 
 
@@ -171,7 +184,7 @@ class EGDDistribuceNextChangeSensor(EGDBaseEntity, SensorEntity):
         
         from datetime import datetime
         
-        now = datetime.now()
+        now = dt_util.now().replace(tzinfo=None)
         for interval in self.coordinator.data.get("hdo_intervals", []):
             start = datetime.fromisoformat(interval["od"])
             if start <= now:

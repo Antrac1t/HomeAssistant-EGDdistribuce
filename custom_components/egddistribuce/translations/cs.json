@@ -19,7 +19,6 @@
           "price_vt": "Cena VT (vysoký tarif)",
           "price_nt": "Cena NT (nízký tarif)",
           "price_unit": "Jednotka ceny",
-          "update_interval": "Interval aktualizace (minuty)",
           "color_vt": "Barva VT (hex)",
           "color_nt": "Barva NT (hex)"
         },
@@ -36,7 +35,6 @@
           "price_vt": "Cena VT (vysoký tarif)",
           "price_nt": "Cena NT (nízký tarif)",
           "price_unit": "Jednotka ceny",
-          "update_interval": "Interval aktualizace (minuty)",
           "color_vt": "Barva VT (hex)",
           "color_nt": "Barva NT (hex)"
         },
@@ -53,7 +51,6 @@
           "price_vt": "Cena VT (vysoký tarif)",
           "price_nt": "Cena NT (nízký tarif)",
           "price_unit": "Jednotka ceny",
-          "update_interval": "Interval aktualizace (minuty)",
           "color_vt": "Barva VT (hex)",
           "color_nt": "Barva NT (hex)"
         },
@@ -90,7 +87,21 @@
       }
     }
   },
+  "selector": {
+    "config_type": {
+      "options": {
+        "classic": "Klasické HDO (A+B+DP)",
+        "hdo_codes": "Více HDO příkazů (kódy)",
+        "smart": "Smart metr (speciální přístroje)"
+      }
+    }
+  },
   "entity": {
+    "button": {
+      "refresh_api": {
+        "name": "Obnovit data z API"
+      }
+    },
     "binary_sensor": {
       "hdo_status": {
         "name": "HDO stav"
@@ -106,8 +117,8 @@
       "current_price": {
         "name": "Aktuální cena"
       },
-      "remaining_time": {
-        "name": "Zbývající čas do změny"
+      "next_hdo_change": {
+        "name": "Další změna HDO"
       },
       "next_change": {
         "name": "Další HDO čas"
