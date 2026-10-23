@@ -44,10 +44,10 @@
         }
       },
       "smart": {
-        "title": "Smart metr",
-        "description": "Zadejte kód vašeho chytrého měřiče (např. Cd56)",
+        "title": "Chytré elektroměry",
+        "description": "Zadejte kód vašeho chytrého elektroměru (např. Cd56)",
         "data": {
-          "hdo_code": "Kód smart metru",
+          "hdo_code": "Kód chytrého elektroměru",
           "price_vt": "Cena VT (vysoký tarif)",
           "price_nt": "Cena NT (nízký tarif)",
           "price_unit": "Jednotka ceny",
@@ -92,7 +92,7 @@
       "options": {
         "classic": "Klasické HDO (A+B+DP)",
         "hdo_codes": "Více HDO příkazů (kódy)",
-        "smart": "Smart metr (speciální přístroje)"
+        "smart": "Chytré elektroměry (speciální přístroje)"
       }
     }
   },
