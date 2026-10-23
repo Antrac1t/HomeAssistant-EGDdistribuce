@@ -85,6 +85,9 @@
       },
       "hdo_times_change": {
         "name": "HDO Times Change"
+      },
+      "update_status": {
+        "name": "API update status"
       }
     },
     "sensor": {
