@@ -52,6 +52,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         update_interval: int = DEFAULT_API_UPDATE_INTERVAL_MIN,  # in minutes
         color_vt: str = "#ff5252",  # Red for high tariff
         color_nt: str = "#2196f3",  # Blue for low tariff
+        price_unit: str = "Kč/kWh",
     ):
         """Initialize coordinator."""
         super().__init__(
@@ -76,6 +77,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         self.cached_filtered = None
         # původní uživatelsky nastavitelný interval
         self.api_update_interval = timedelta(minutes=update_interval)
+        self.price_unit = price_unit
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Fetch data from API."""
