@@ -3,7 +3,7 @@
   "name": "EGD Distribuce",
   "codeowners": ["@Antrac1t"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["http"],
   "documentation": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce/issues",

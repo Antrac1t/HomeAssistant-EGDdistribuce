@@ -45,9 +45,16 @@
       },
       "smart": {
         "title": "Smart Meter",
-        "description": "Enter your smart meter code (e.g. Cd56)",
+        "description": "Select your smart meter code (e.g. ACd4510). You can type into the field to filter the list. The list is loaded from EG.D.",
         "data": {
-          "hdo_code": "Smart meter code",
+          "hdo_code": "Smart meter code"
+        }
+      },
+      "smart_settings": {
+        "title": "Smart Meter {code}",
+        "description": "Set the relay schedule (if the code has several), prices and colors. For direct heating / storage the relay labelled PV is usually correct.",
+        "data": {
+          "schedule": "Relay schedule",
           "price_vt": "High tariff price (peak, HT)",
           "price_nt": "Low tariff price (off-peak, NT)",
           "price_unit": "Price unit",
@@ -55,7 +62,7 @@
           "color_nt": "Low tariff color (NT, hex)"
         },
         "data_description": {
-          "hdo_code": "Example: Cd56, C55, D56",
+          "schedule": "The schedule that defines your low tariff. Schedules are not combined.",
           "price_unit": "Unit of the HT/NT prices and the Current Price sensor. Defaults to Kč/kWh; a custom value can be entered."
         }
       }
@@ -63,10 +70,22 @@
     "error": {
       "cannot_connect": "Failed to connect to EGD Distribuce API",
       "invalid_psc": "Postal code not found in EGD database",
+      "unknown_code": "The code was not found in the EG.D list. Select a code from the list.",
       "unknown": "Unexpected error occurred"
     },
     "abort": {
-      "already_configured": "This configuration is already set up"
+      "already_configured": "This configuration is already set up",
+      "cannot_connect": "Failed to download the code list from EG.D. Try again later."
+    }
+  },
+  "issues": {
+    "smart_schedule_default": {
+      "title": "Smart meter {code}: schedule chosen automatically",
+      "description": "Code {code} has several relay schedules and none was selected. \"{schedule}\" is used. If that is not yours, remove the integration and add it again with your own choice."
+    },
+    "smart_schedule_missing": {
+      "title": "Smart meter {code}: saved schedule is no longer offered by EG.D",
+      "description": "The saved relay schedule is no longer in the EG.D data. \"{schedule}\" is used temporarily. Remove the integration and add it again with a new choice."
     }
   },
   "options": {

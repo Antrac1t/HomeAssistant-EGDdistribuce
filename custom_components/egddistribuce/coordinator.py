@@ -1,17 +1,19 @@
 """Coordinator for EGD Distribuce integration."""
+import asyncio
 from datetime import datetime, timedelta, time
 import logging
 from typing import Any, Callable, Dict
 
 import aiohttp
-import async_timeout
 import holidays
 
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import async_call_later, async_track_point_in_time
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 from .download import Download
+from .schedules import default_schedule, schedule_labels, select_schedule
 
 try:
     from .const import (
@@ -57,6 +59,8 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         color_vt: str = "#ff5252",  # Red for high tariff
         color_nt: str = "#2196f3",  # Blue for low tariff
         price_unit: str = "Kč/kWh",
+        schedule: str = None,
+        entry_id: str = None,
     ):
         """Initialize coordinator."""
         # Polling only downloads data from the API. The HDO state switch is
@@ -82,6 +86,11 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         self.last_update_cached = False
         self.cached_filtered = None
         self.price_unit = price_unit
+        self.schedule = schedule
+        self.entry_id = entry_id
+        # "ok", "default" (no choice saved, several schedules) or "missing" (saved schedule is gone)
+        self.schedule_status = "ok"
+        self.active_schedule = None
         self._boundary_unsub: Callable[[], None] | None = None
         self._retry_unsub: Callable[[], None] | None = None
 
@@ -155,7 +164,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         now = self._now()
         
         try:
-            async with async_timeout.timeout(30):
+            async with asyncio.timeout(30):
                 async with aiohttp.ClientSession() as session:
                     # Krok 1: Stáhnout HDO data
                     hdo_data = await self._fetch_hdo_data(session)
@@ -184,6 +193,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             self._schedule_retry()
         else:
             self._cancel_retry()
+        self._sync_schedule_issue()
         self._schedule_boundary(data)
         return data
 
@@ -258,9 +268,48 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             x for x in hdo_data
             if x.get('kodHdo_A') == self.hdo_code
         ]
+
+        # A smart code can include separate relay schedules (e.g. PV and TUV)
+        # that must not be mixed together.
+        labels = schedule_labels(filtered)
+        if self.schedule in labels:
+            selected = self.schedule
+            self.schedule_status = "ok"
+        else:
+            selected = default_schedule(labels)
+            if self.schedule:
+                self.schedule_status = "missing"
+            else:
+                self.schedule_status = "default" if len(labels) > 1 else "ok"
+        self.active_schedule = selected
+        if selected is not None:
+            filtered = select_schedule(filtered, selected)
         
-        _LOGGER.debug(f"Smart filter: found {len(filtered)} records")
+        _LOGGER.debug(
+            f"Smart filter: found {len(filtered)} records, schedule={selected}, status={self.schedule_status}"
+        )
         return filtered
+
+    def _sync_schedule_issue(self) -> None:
+        """Tell the user when the schedule was chosen automatically or is no longer offered."""
+        if self.entry_id is None or self.config_type != CONFIG_TYPE_SMART:
+            return
+        issue_id = f"smart_schedule_{self.entry_id}"
+        if self.schedule_status == "ok":
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            return
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=f"smart_schedule_{self.schedule_status}",
+            translation_placeholders={
+                "code": str(self.hdo_code),
+                "schedule": str(self.active_schedule),
+            },
+        )
 
     def _parse_times(self, filtered_records: list, now: datetime) -> Dict[str, Any]:
         """Zparsovat HDO časy z filtrovaných záznamů."""
