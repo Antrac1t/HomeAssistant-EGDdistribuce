@@ -37,9 +37,12 @@ Pro elektroměry s více HDO příkazy (např. různá relé pro ohřev vody, to
 
 
 ### 3. Smart Metr
-Chytré měřiče s speciálními kódy (Cd56, C55, D56, atd.). 
-Záleží na velikosti písmen a některé elektroměry mohou zobrazovat pomlčku míso podtržítka (na el. je toto: CD2526-3).
-Zadávaný kód musí odpovídat formátu v https://hdo.distribuce24.cz/casy (výsledný kód je Cd2526_3)
+Chytré měřiče s speciálními kódy (ACd4510, Cd56, Cd2526_3, atd.).
+Kód se vybírá ze seznamu, který integrace stáhne z https://hdo.distribuce24.cz/casy. Do pole lze psát, seznam se tím filtruje. Na velikosti písmen nezáleží, neexistující kód se odmítne. Některé elektroměry zobrazují pomlčku místo podtržítka: kód `CD2526-3` hledejte v seznamu jako `Cd2526_3`. Pokud se seznam nepodaří stáhnout, nastavení se přeruší a lze ho zopakovat později.
+
+Nastavení má tři obrazovky: typ konfigurace, výběr kódu smart metru ze seznamu a nastavení (rozpis relé, ceny, jednotka, barvy). Pole s rozpisem se zobrazí jen u kódů, které obsahují samostatné rozpisy pro více relé (například `ACd4510`: relé 1 – PV a relé 2 – TUV). Vybraný rozpis se použije pro atributy, stav HDO i cenu; rozpisy se nesčítají. Předvybrán je rozpis označený **PV** (jinak první relé).
+
+Starší nastavení bez uloženého rozpisu používá stejné výchozí pravidlo (PV, jinak první relé) a Home Assistant zobrazí upozornění v Opravách. Rozpis stávajícího záznamu zatím nelze změnit – integraci odeberte a přidejte znovu. Stejné upozornění se zobrazí, pokud EG.D už uložený rozpis nenabízí.
 
 ###
 <img width="412" height="191" alt="image" src="https://github.com/user-attachments/assets/aaa17e89-8873-48ff-856e-0d6f7f3b9bd3" />
