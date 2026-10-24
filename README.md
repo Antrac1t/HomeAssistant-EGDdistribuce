@@ -105,14 +105,8 @@ Zadávaný kód musí odpovídat formátu v https://hdo.distribuce24.cz/casy (v�
 
 <img width="485" height="357" alt="{6A53E1BA-5812-42B8-B76E-D1A24A4A118B}" src="https://github.com/user-attachments/assets/466bc63c-16c7-4ffc-97e9-a1a8c306e776" />
 
-1. Jděte na **Nastavení** → **Ovládací panely**
-2. Klikněte **...** v pravo nahoře
-3. Klikněte na **Zdroje**
-4. Přidejte /egddistribuce_card/hdo-chart-card.js
-5. Přidejte kartu v Dashboard 
-
 ```yaml
-type: custom:hdo-chart-card
+type: custom:egd-hdo-chart-card
 entity: binary_sensor.NazevSenzoru
 title: HDO Timeline
 show_days: 2
