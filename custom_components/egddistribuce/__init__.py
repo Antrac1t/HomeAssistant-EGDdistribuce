@@ -8,6 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.components.http import StaticPathConfig
 
 from .const import (
@@ -23,6 +24,7 @@ from .const import (
     CONF_COLOR_VT,
     CONF_COLOR_NT,
     CONF_PRICE_UNIT,
+    CONF_SCHEDULE,
     CONFIG_TYPE_CLASSIC,
     CONFIG_TYPE_HDO_CODES,
     CONFIG_TYPE_SMART,
@@ -110,6 +112,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         color_vt=str(color_vt),
         color_nt=str(color_nt),
         price_unit=str(price_unit),
+        schedule=entry.data.get(CONF_SCHEDULE),
+        entry_id=entry.entry_id,
     )
 
     # Cancel the coordinator's own timers on unload/reload
@@ -136,6 +140,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove the repair issue that belongs to a deleted config entry."""
+    ir.async_delete_issue(hass, DOMAIN, f"smart_schedule_{entry.entry_id}")
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:

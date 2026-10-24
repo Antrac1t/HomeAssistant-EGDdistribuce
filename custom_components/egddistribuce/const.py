@@ -14,6 +14,7 @@ CONF_CONFIG_TYPE = "config_type"  # Type of configuration
 CONF_COLOR_VT = "color_vt"  # Color for high tariff (VT) in hex
 CONF_COLOR_NT = "color_nt"  # Color for low tariff (NT) in hex
 CONF_PRICE_UNIT = "price_unit"
+CONF_SCHEDULE = "schedule"  # Selected relay schedule (label "sazba") for smart meters
 
 # Configuration types
 CONFIG_TYPE_CLASSIC = "classic"  # Classic A+B+DP
