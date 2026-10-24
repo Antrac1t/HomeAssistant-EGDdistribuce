@@ -3,11 +3,11 @@
   "name": "EGD Distribuce",
   "codeowners": ["@Antrac1t"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["frontend", "http"],
   "documentation": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce/issues",
-  "quality_scale": "silver",
+  "quality_scale": "custom",
   "requirements": ["aiohttp", "holidays"],
   "version": "V0.8.0.0"
 }
