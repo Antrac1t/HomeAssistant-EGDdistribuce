@@ -72,13 +72,13 @@ again creates a new registration and may not preserve the old IDs.
 For traditional electricity meters using a combination of **A**, **B** and **DP** codes. You enter the postal code, code A (1-9), code B (1-9) and code DP (01-16).
 
 For classic HDO, public holidays follow the weekend schedule. For smart commands they follow the actual weekday, so a holiday on a Wednesday uses the Wednesday times.
-<img width="360" alt="Classic HDO (A+B+DP)" src="docs/conf-classic.en.png" />
+![Classic HDO (A+B+DP)](docs/conf-classic.en.png)
 
 
 ### 2. Multiple HDO commands (codes)
 For electricity meters with multiple HDO commands (e.g. different relays for water heating, space heating, etc.). You enter the postal code and HDO codes separated by a comma (e.g. `405,406,410`).
 
-<img width="360" alt="Multiple HDO commands (codes)" src="docs/conf-commands.en.png" />
+![Multiple HDO commands (codes)](docs/conf-commands.en.png)
 
 
 ### 3. Smart meter (special devices)
@@ -89,9 +89,9 @@ The setup has three screens: configuration type, selection of the smart meter co
 
 Older setups without a saved schedule use the same default rule (PV, otherwise the first relay) and Home Assistant shows a warning in Repairs. The schedule of an existing entry cannot be changed yet – remove the integration and add it again. The same warning is shown if EG.D no longer offers the saved schedule.
 
-<img width="412" height="191" alt="image" src="https://github.com/user-attachments/assets/aaa17e89-8873-48ff-856e-0d6f7f3b9bd3" />
+![Smart meter relay schedule selection](https://github.com/user-attachments/assets/aaa17e89-8873-48ff-856e-0d6f7f3b9bd3)
 
-<img width="360" alt="Smart meter" src="docs/conf-smart.en.png" />
+![Smart meter](docs/conf-smart.en.png)
 
 The screenshot shows the older form; the current code and schedule selection
 steps are described above.
@@ -139,7 +139,7 @@ steps are described above.
 3. Search for "**EGD Distribuce**"
 
 4. **Select the configuration type:**   
-<img width="360" alt="Configuration type" src="docs/conf-types.en.png" />
+![Configuration type](docs/conf-types.en.png)
 
 5. Enter the required data (postal code, A/B/DP codes or HDO codes); for a smart meter, select a code from the list and a relay schedule if offered. Optionally set VT/NT prices, price unit and tariff colors. Prices, unit and colors can be changed later in the integration **Settings**.
 
@@ -148,7 +148,7 @@ steps are described above.
 
 New and edited dashboards must use the new type `custom:egd-hdo-card`. The old type `custom:hdo-chart-card` remains supported only as a compatibility alias for existing dashboards; switch to the new type when editing them.
 
-<img width="485" height="357" alt="{6A53E1BA-5812-42B8-B76E-D1A24A4A118B}" src="https://github.com/user-attachments/assets/466bc63c-16c7-4ffc-97e9-a1a8c306e776" />
+![HDO Timeline card preview](https://github.com/user-attachments/assets/466bc63c-16c7-4ffc-97e9-a1a8c306e776)
 
 The integration loads the card automatically, there is no need to add it to **Resources**. Just add the card to a dashboard:
 

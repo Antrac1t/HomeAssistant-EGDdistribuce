@@ -73,13 +73,13 @@ Určeno pro tradiční elektroměry využívající kombinaci kódů **A**, **B*
 
 U klasického HDO se státní svátky řídí víkendovým rozpisem. U smart povelů se řídí skutečným dnem v týdnu, takže svátek ve středu použije středeční časy.
 
-<img width="360" alt="Klasické HDO (A+B+DP)" src="docs/conf-classic.cs.png" />
+![Klasické HDO (A+B+DP)](docs/conf-classic.cs.png)
 
 
 ### 2. Více HDO příkazů (kódy)
 Pro elektroměry s více HDO příkazy (např. různá relé pro ohřev vody, topení, atd.). Zadáváte PSČ a HDO kódy oddělené čárkou (např. `405,406,410`).
 
-<img width="360" alt="Více HDO příkazů (kódy)" src="docs/conf-commands.cs.png" />
+![Více HDO příkazů (kódy)](docs/conf-commands.cs.png)
 
 
 ### 3. Chytré elektroměry (speciální přístroje)
@@ -90,9 +90,9 @@ Nastavení má tři obrazovky: typ konfigurace, výběr kódu smart metru ze sez
 
 Starší nastavení bez uloženého rozpisu používá stejné výchozí pravidlo (PV, jinak první relé) a Home Assistant zobrazí upozornění v Opravách. Rozpis stávajícího záznamu zatím nelze změnit – integraci odeberte a přidejte znovu. Stejné upozornění se zobrazí, pokud EG.D už uložený rozpis nenabízí.
 
-<img width="412" height="191" alt="image" src="https://github.com/user-attachments/assets/aaa17e89-8873-48ff-856e-0d6f7f3b9bd3" />
+![Výběr rozpisu relé pro chytrý elektroměr](https://github.com/user-attachments/assets/aaa17e89-8873-48ff-856e-0d6f7f3b9bd3)
 
-<img width="360" alt="Chytré elektroměry" src="docs/conf-smart.cs.png" />
+![Chytré elektroměry](docs/conf-smart.cs.png)
 
 Obrázek zachycuje starší formulář; aktuální výběr kódu a rozpisu popisují kroky výše.
 
@@ -139,7 +139,7 @@ Obrázek zachycuje starší formulář; aktuální výběr kódu a rozpisu popis
 3. Vyhledejte "**EGD Distribuce**"
 
 4. **Vyberte typ konfigurace:**   
-<img width="360" alt="Typ konfigurace" src="docs/conf-types.cs.png" />
+![Typ konfigurace](docs/conf-types.cs.png)
 
 5. Zadejte požadované údaje (PSČ, kódy A/B/DP nebo HDO kódy); u chytrého elektroměru vyberte kód ze seznamu a případně rozpis relé. Nastavte volitelně ceny VT/NT, jednotku ceny a barvy tarifů. Ceny, jednotku i barvy lze později změnit v **Nastavení** integrace.
 
@@ -148,7 +148,7 @@ Obrázek zachycuje starší formulář; aktuální výběr kódu a rozpisu popis
 
 Nové i upravované dashboardy musí používat nový typ `custom:egd-hdo-card`. Starý typ `custom:hdo-chart-card` zůstává podporovaný pouze jako kompatibilní alias pro existující dashboardy; při jejich úpravě přejděte na nový typ.
 
-<img width="485" height="357" alt="{6A53E1BA-5812-42B8-B76E-D1A24A4A118B}" src="https://github.com/user-attachments/assets/466bc63c-16c7-4ffc-97e9-a1a8c306e776" />
+![Ukázka HDO Timeline karty](https://github.com/user-attachments/assets/466bc63c-16c7-4ffc-97e9-a1a8c306e776)
 
 Integrace kartu načítá automaticky, do **Zdrojů** ji není potřeba přidávat. Kartu stačí přidat do dashboardu:
 
