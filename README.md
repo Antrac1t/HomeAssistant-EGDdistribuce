@@ -35,6 +35,35 @@ Integrace podporuje jak **klasické elektroměry**, tak **chytré elektroměry**
 | Senzor | **Další HDO čas** | Příští HDO časový slot |
 | Tlačítko | **Obnovit data z API** | Okamžité stažení dat z API |
 
+### ID nových entit
+
+Nově registrované entity používají formát `<platforma>.egd_<typ>_<nazev>`.
+Pevná část je na začátku; `nazev` na konci je název konfiguračního záznamu integrace
+převedený na malá písmena bez diakritiky, mezery a oddělovače se změní na podtržítka.
+Úvodní „EGD HDO“ z výchozího názvu se vynechává, aby se neopakovalo
+(„EGD HDO Smart (ACd253)“ → `binary_sensor.egd_hdo_status_smart_acd253`).
+Například pro záznam „Dům“:
+
+| Entita | Nové `entity_id` |
+|---|---|
+| HDO stav | `binary_sensor.egd_hdo_status_dum` |
+| Změna HDO časů | `binary_sensor.egd_hdo_times_change_dum` |
+| Stav aktualizace API | `binary_sensor.egd_update_status_dum` |
+| Aktuální cena | `sensor.egd_current_price_dum` |
+| Další změna HDO | `sensor.egd_next_hdo_change_dum` |
+| Další HDO čas | `sensor.egd_next_change_dum` |
+| Obnovit data z API | `button.egd_refresh_api_dum` |
+
+Existující entity se nepřejmenovávají: `entity_id`, `unique_id` i uživatelská
+nastavení zůstávají zachována, bez duplicit. Nový formát platí i pro dosud
+nevytvořené entity u stávajícího zařízení. Zobrazované názvy zůstávají přeložené.
+Při kolizi ID přidá Home Assistant číselný konec (např. `_2`).
+Přejmenování záznamu nezmění již registrovaná ID. Uživatel může ID stále ručně
+změnit; parsování proto musí počítat i se starými a vlastními ID.
+
+Integraci kvůli novému formátu neodebírejte. Odebrání a opětovné přidání znamená
+novou registraci; původní ID se tím nemusí zachovat.
+
 ---
 
 ## Podporované typy HDO
@@ -54,7 +83,7 @@ Pro elektroměry s více HDO příkazy (např. různá relé pro ohřev vody, to
 
 
 ### 3. Chytré elektroměry (speciální přístroje)
-Chytré měřiče s speciálními kódy (ACd4510, Cd56, Cd2526_3, atd.).
+Chytré měřiče se speciálními kódy (ACd4510, Cd56, Cd2526_3, atd.).
 Kód se vybírá ze seznamu, který integrace stáhne z https://hdo.distribuce24.cz/casy. Do pole lze psát, seznam se tím filtruje. Na velikosti písmen nezáleží, neexistující kód se odmítne. Některé elektroměry zobrazují pomlčku místo podtržítka: kód `CD2526-3` hledejte v seznamu jako `Cd2526_3`. Pokud se seznam nepodaří stáhnout, nastavení se přeruší a lze ho zopakovat později.
 
 Nastavení má tři obrazovky: typ konfigurace, výběr kódu smart metru ze seznamu a nastavení (rozpis relé, ceny, jednotka, barvy). Pole s rozpisem se zobrazí jen u kódů, které obsahují samostatné rozpisy pro více relé (například `ACd4510`: relé 1 – PV a relé 2 – TUV). Vybraný rozpis se použije pro atributy, stav HDO i cenu; rozpisy se nesčítají. Předvybrán je rozpis označený **PV** (jinak první relé).
@@ -64,6 +93,8 @@ Starší nastavení bez uloženého rozpisu používá stejné výchozí pravidl
 <img width="412" height="191" alt="image" src="https://github.com/user-attachments/assets/aaa17e89-8873-48ff-856e-0d6f7f3b9bd3" />
 
 <img width="360" alt="Chytré elektroměry" src="docs/conf-smart.cs.png" />
+
+Obrázek zachycuje starší formulář; aktuální výběr kódu a rozpisu popisují kroky výše.
 
 ---
 
@@ -110,7 +141,7 @@ Starší nastavení bez uloženého rozpisu používá stejné výchozí pravidl
 4. **Vyberte typ konfigurace:**   
 <img width="360" alt="Typ konfigurace" src="docs/conf-types.cs.png" />
 
-5. Zadejte požadované údaje (PSČ, kódy A/B/DP, HDO kódy nebo kód chytrého elektroměru) a volitelně ceny VT/NT, jednotku ceny a barvy tarifů. Ceny, jednotku i barvy lze později změnit v **Nastavení** integrace.
+5. Zadejte požadované údaje (PSČ, kódy A/B/DP nebo HDO kódy); u chytrého elektroměru vyberte kód ze seznamu a případně rozpis relé. Nastavte volitelně ceny VT/NT, jednotku ceny a barvy tarifů. Ceny, jednotku i barvy lze později změnit v **Nastavení** integrace.
 
 
 ## HDO Timeline nastavení
@@ -123,7 +154,7 @@ Integrace kartu načítá automaticky, do **Zdrojů** ji není potřeba přidáv
 
 ```yaml
 type: custom:egd-hdo-card
-entity: binary_sensor.egd_hdo_hdo_status # senzor HDO Status, přesné ID závisí na názvu zařízení
+entity: binary_sensor.egd_hdo_status_dum # nahraďte skutečným ID senzoru HDO stav
 title: HDO Timeline
 show_days: 2
 show_header: false
@@ -162,7 +193,7 @@ header:
   show: true
   show_states: true
 series:
-  - entity: binary_sensor.egd_hdo_hdo_status # Podle pojmenování zařízení najděte senzor *_hdo_status
+  - entity: binary_sensor.egd_hdo_status_dum # nahraďte skutečným ID senzoru HDO stav
     float_precision: 2
     group_by:
       func: avg
@@ -191,7 +222,7 @@ Spotové ceny jsou (zatím) hodinové, ale HDO může mít 15minutové intervaly
 
 Čas příští změny HDO na dashboardu (frontend ho zobrazí jako živý relativní čas, např. „za 23 minut“):
 ```yaml
-  - entity: sensor.hdo_next_hdo_change # timestamp senzor, název závisí na pojmenování zařízení
+  - entity: sensor.egd_next_hdo_change_dum # nahraďte skutečným ID senzoru Další změna HDO
     name: Další změna
     format: relative
 ```
@@ -200,7 +231,7 @@ Senzor „Zbývající čas do změny“ (`Time Until Change`) a atribut `remain
 ```yaml
 trigger:
   - trigger: time
-    at: sensor.hdo_next_hdo_change
+    at: sensor.egd_next_hdo_change_dum
 ```
 
 ---

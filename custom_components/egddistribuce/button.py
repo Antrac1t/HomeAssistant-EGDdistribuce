@@ -8,6 +8,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .coordinator import EGDDistribuceCoordinator
+from .entity import suggest_entity_id
 
 
 async def async_setup_entry(
@@ -35,6 +36,7 @@ class EGDDistribuceRefreshButton(ButtonEntity):
         """Initialize the button."""
         self._coordinator = coordinator
         self._attr_unique_id = f"{entry.entry_id}_refresh_api"
+        self.entity_id = suggest_entity_id("button", "refresh_api", entry)
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
             "name": entry.title,
