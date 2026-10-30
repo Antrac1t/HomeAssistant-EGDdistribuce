@@ -34,6 +34,10 @@ _LOGGER = logging.getLogger(__name__)
 API_REGION_URL = "https://hdo.distribuce24.cz/region"
 API_HDO_URL = "https://hdo.distribuce24.cz/casy"
 
+# Traditional HDO schedules treat public holidays as Sundays. Smart schedules
+# distinguish holidays by their actual weekday.
+HOLIDAY_AS_SUNDAY_REGIONS = ("ZAPAD", "VYCHOD", "VERSACOM")
+
 # How often the HDO schedule is downloaded from the API
 API_UPDATE_INTERVAL = timedelta(hours=1)
 # Retry delay when the API failed and cached data is being used
@@ -362,27 +366,34 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
                     continue
             
             # Záznam je platný - zparsovat časy
+            holiday_as_sunday = record.get("region") in HOLIDAY_AS_SUNDAY_REGIONS
             for sazba in record.get('sazby', []):
                 for day in sazba.get('dny', []):
                     day_code = day['denVTydnu']
                     
                     # Včera - potřeba pro noční blok, který začal před půlnocí
-                    if self._is_matching_day(date_yesterday, day_code):
+                    if self._is_matching_day(
+                        date_yesterday, day_code, holiday_as_sunday
+                    ):
                         for cas in day.get('casy', []):
                             hdo_times_yesterday.append({'od': cas['od'], 'do': cas['do']})
                     
                     # Pozítří - potřeba pro konec zítřejšího nočního bloku
-                    if self._is_matching_day(date_after_tomorrow, day_code):
+                    if self._is_matching_day(
+                        date_after_tomorrow, day_code, holiday_as_sunday
+                    ):
                         for cas in day.get('casy', []):
                             hdo_times_after_tomorrow.append({'od': cas['od'], 'do': cas['do']})
                     
                     # Dnes
-                    if self._is_matching_day(date_now, day_code):
+                    if self._is_matching_day(date_now, day_code, holiday_as_sunday):
                         for cas in day.get('casy', []):
                             hdo_times_today.append({'od': cas['od'], 'do': cas['do']})
                     
                     # Zítra
-                    if self._is_matching_day(date_tomorrow, day_code):
+                    if self._is_matching_day(
+                        date_tomorrow, day_code, holiday_as_sunday
+                    ):
                         for cas in day.get('casy', []):
                             hdo_times_tomorrow.append({'od': cas['od'], 'do': cas['do']})
         
@@ -444,19 +455,13 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             "HDO_HOURLY": HDO_HOURLY,
         }
 
-    def _is_matching_day(self, date: datetime.date, day_code: int) -> bool:
-        """Kontrola zda datum odpovídá kódu dne."""
-        is_holiday = date in self.cz_holidays
-        
-        # Svátek = neděle
-        if is_holiday and day_code == 7:
-            return True
-        
-        # Pracovní den
-        if not is_holiday and date.isoweekday() == day_code:
-            return True
-        
-        return False
+    def _is_matching_day(
+        self, date: datetime.date, day_code: int, holiday_as_sunday: bool
+    ) -> bool:
+        """Check whether a date matches a schedule weekday and its holiday rules."""
+        if holiday_as_sunday and date in self.cz_holidays:
+            return day_code == 7
+        return date.isoweekday() == day_code
 
     def _is_time_active(self, current_time: time, hdo_times: list) -> bool:
         """Kontrola zda je aktuální čas v HDO slotu."""

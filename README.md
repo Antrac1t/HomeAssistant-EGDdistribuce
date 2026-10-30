@@ -27,6 +27,8 @@ Integrace podporuje jak **klasické elektroměry**, tak **smart měření**, a j
 ### 1. Klasické HDO (A + B + DP)
 Určeno pro tradiční elektroměry využívající kombinaci kódů **A**, **B** a **DP**.
 
+U klasického HDO se státní svátky řídí víkendovým rozpisem. U smart povelů se řídí skutečným dnem v týdnu, takže svátek ve středu použije středeční časy.
+
 <img width="351" height="768" alt="{A7547B41-1C31-41BB-AAF3-B42E5CE84658}" src="https://github.com/user-attachments/assets/02075e49-decb-49de-894d-06d555b19c97" />
 
 
