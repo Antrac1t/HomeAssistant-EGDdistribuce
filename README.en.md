@@ -35,6 +35,35 @@ The integration supports both **classic electricity meters** and **smart meters*
 | Sensor | **Next HDO Slot** | Next HDO time slot |
 | Button | **Refresh API data** | Download data from the API immediately |
 
+### IDs of new entities
+
+Newly registered entities use `<platform>.egd_<type>_<name>`.
+The fixed part comes first; the name at the end is the integration config entry
+title, lowercased with accents removed and spaces/separators replaced by underscores.
+A leading "EGD HDO" from the default title is dropped so it is not repeated
+("EGD HDO Smart (ACd253)" → `binary_sensor.egd_hdo_status_smart_acd253`).
+For example, for an entry titled "Dům":
+
+| Entity | New `entity_id` |
+|---|---|
+| HDO Status | `binary_sensor.egd_hdo_status_dum` |
+| HDO Times Change | `binary_sensor.egd_hdo_times_change_dum` |
+| API update status | `binary_sensor.egd_update_status_dum` |
+| Current Price | `sensor.egd_current_price_dum` |
+| Next HDO Change | `sensor.egd_next_hdo_change_dum` |
+| Next HDO Slot | `sensor.egd_next_change_dum` |
+| Refresh API data | `button.egd_refresh_api_dum` |
+
+Existing entities are not renamed: their `entity_id`, `unique_id` and user
+settings are preserved, without duplicates. The new format also applies to
+entities first created on existing devices. Display names remain translated.
+Home Assistant resolves ID collisions with numeric suffixes (e.g. `_2`).
+Renaming the config entry does not change registered IDs. Users can still
+manually change IDs, so parsers must also allow legacy and custom IDs.
+
+Do not remove the integration to get the new format. Removing and adding it
+again creates a new registration and may not preserve the old IDs.
+
 ---
 
 ## Supported HDO types
@@ -63,6 +92,9 @@ Older setups without a saved schedule use the same default rule (PV, otherwise t
 <img width="412" height="191" alt="image" src="https://github.com/user-attachments/assets/aaa17e89-8873-48ff-856e-0d6f7f3b9bd3" />
 
 <img width="360" alt="Smart meter" src="docs/conf-smart.en.png" />
+
+The screenshot shows the older form; the current code and schedule selection
+steps are described above.
 
 ---
 
@@ -109,7 +141,7 @@ Older setups without a saved schedule use the same default rule (PV, otherwise t
 4. **Select the configuration type:**   
 <img width="360" alt="Configuration type" src="docs/conf-types.en.png" />
 
-5. Enter the required data (postal code, A/B/DP codes, HDO codes or smart meter code) and optionally the VT/NT prices, price unit and tariff colors. Prices, unit and colors can be changed later in the integration **Settings**.
+5. Enter the required data (postal code, A/B/DP codes or HDO codes); for a smart meter, select a code from the list and a relay schedule if offered. Optionally set VT/NT prices, price unit and tariff colors. Prices, unit and colors can be changed later in the integration **Settings**.
 
 
 ## HDO Timeline setup
@@ -122,7 +154,7 @@ The integration loads the card automatically, there is no need to add it to **Re
 
 ```yaml
 type: custom:egd-hdo-card
-entity: binary_sensor.egd_hdo_hdo_status # the HDO Status sensor, the exact ID depends on your device name
+entity: binary_sensor.egd_hdo_status_dum # replace with your actual HDO Status entity ID
 title: HDO Timeline
 show_days: 2
 show_header: false
@@ -161,7 +193,7 @@ header:
   show: true
   show_states: true
 series:
-  - entity: binary_sensor.egd_hdo_hdo_status # Depending on your device name, find the sensor *_hdo_status
+  - entity: binary_sensor.egd_hdo_status_dum # replace with your actual HDO Status entity ID
     float_precision: 2
     group_by:
       func: avg
@@ -190,7 +222,7 @@ Spot prices are (at the moment) hourly, but HDO can have 15-minute intervals. Fo
 
 Time of the next HDO change on the dashboard (the frontend renders it as a live relative time, e.g. "in 23 minutes"):
 ```yaml
-  - entity: sensor.hdo_next_hdo_change # timestamp sensor, the name depends on your device name
+  - entity: sensor.egd_next_hdo_change_dum # replace with your actual Next HDO Change entity ID
     name: Next change
     format: relative
 ```
@@ -199,7 +231,7 @@ The `Time Until Change` sensor and the `remaining_time` attribute were removed (
 ```yaml
 trigger:
   - trigger: time
-    at: sensor.hdo_next_hdo_change
+    at: sensor.egd_next_hdo_change_dum
 ```
 
 ---

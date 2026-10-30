@@ -19,7 +19,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import EGDDistribuceCoordinator
-from .entity import EGDBaseEntity
+from .entity import EGDBaseEntity, suggest_entity_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -67,6 +67,7 @@ class EGDDistribuceCurrentPriceSensor(EGDBaseEntity, SensorEntity):
         
         self._attr_unique_id = f"{entry.entry_id}_current_price"
         self._attr_translation_key = "current_price"
+        self.entity_id = suggest_entity_id("sensor", "current_price", entry)
         self._attr_native_unit_of_measurement = coordinator.price_unit
         
         self._attr_device_info = {
@@ -121,6 +122,7 @@ class EGDDistribuceNextChangeTimeSensor(EGDBaseEntity, SensorEntity):
 
         self._attr_unique_id = f"{entry.entry_id}_next_hdo_change"
         self._attr_translation_key = "next_hdo_change"
+        self.entity_id = suggest_entity_id("sensor", "next_hdo_change", entry)
 
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
@@ -167,6 +169,7 @@ class EGDDistribuceNextChangeSensor(EGDBaseEntity, SensorEntity):
         
         self._attr_unique_id = f"{entry.entry_id}_next_change"
         self._attr_translation_key = "next_change"
+        self.entity_id = suggest_entity_id("sensor", "next_change", entry)
         
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},

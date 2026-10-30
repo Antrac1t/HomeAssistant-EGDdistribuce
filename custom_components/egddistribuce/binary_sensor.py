@@ -16,7 +16,7 @@ from homeassistant.helpers.entity import EntityCategory
 
 from .const import DOMAIN
 from .coordinator import EGDDistribuceCoordinator
-from .entity import EGDBaseEntity
+from .entity import EGDBaseEntity, suggest_entity_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,6 +52,7 @@ class EGDDistribuceBinarySensor(EGDBaseEntity, BinarySensorEntity):
         
         self._attr_unique_id = f"{entry.entry_id}_hdo_status"
         self._attr_translation_key = "hdo_status"
+        self.entity_id = suggest_entity_id("binary_sensor", "hdo_status", entry)
         
         # Device info for grouping entities
         self._attr_device_info = {
@@ -137,6 +138,7 @@ class EGDDistribuceTimesChangeBinarySensor(EGDBaseEntity, BinarySensorEntity):
         
         self._attr_unique_id = f"{entry.entry_id}_hdo_times_change"
         self._attr_translation_key = "hdo_times_change"
+        self.entity_id = suggest_entity_id("binary_sensor", "hdo_times_change", entry)
         
         # Device info for grouping entities
         self._attr_device_info = {
@@ -216,6 +218,7 @@ class EGDDistribuceUpdateStatusBinarySensor(EGDBaseEntity, BinarySensorEntity):
 
         self._attr_unique_id = f"{entry.entry_id}_update_status"
         self._attr_translation_key = "update_status"
+        self.entity_id = suggest_entity_id("binary_sensor", "update_status", entry)
 
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
