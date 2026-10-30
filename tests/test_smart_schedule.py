@@ -5,7 +5,7 @@ Requires the integration dependencies and Home Assistant.
 """
 
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import importlib
 from pathlib import Path
 import sys
@@ -40,6 +40,10 @@ PV_WEEKEND = [
 ]
 TUV_WEEKDAY = [("01:45:00", "05:45:00"), ("13:00:00", "17:00:00")]
 TUV_WEEKEND = [("03:15:00", "07:15:00"), ("13:30:00", "17:30:00")]
+ISSUE_38_WEEKDAY = [("02:00:00", "06:00:00"), ("13:15:00", "17:15:00")]
+ISSUE_38_WEEKEND = [("03:30:00", "07:30:00"), ("13:45:00", "17:45:00")]
+CLASSIC_218_WEEKDAY = [("03:00:00", "06:00:00"), ("12:00:00", "17:00:00")]
+CLASSIC_218_WEEKEND = [("03:00:00", "08:00:00"), ("14:00:00", "17:00:00")]
 
 
 def slots(times):
@@ -61,6 +65,21 @@ def record(label, weekday, weekend):
             ],
         }],
     }
+
+
+def issue_38_record(region="SM"):
+    """Build an issue 38 record using ACd2515 or classic HDO code 218."""
+    is_classic = region == "ZAPAD"
+    weekday = CLASSIC_218_WEEKDAY if is_classic else ISSUE_38_WEEKDAY
+    weekend = CLASSIC_218_WEEKEND if is_classic else ISSUE_38_WEEKEND
+    result = record(
+        "D25d-rel\u00e91-TAR,TUV" if is_classic else "C25d,D25d-rel\u00e92-TUV",
+        weekday,
+        weekend,
+    )
+    result["kodHdo_A"] = "218" if is_classic else "ACd2515"
+    result["region"] = region
+    return result
 
 
 class SmartScheduleTests(unittest.TestCase):
@@ -189,6 +208,122 @@ class SmartScheduleTests(unittest.TestCase):
             self.coordinator._filter_smart([self.pv, self.tuv]), [self.pv]
         )
         self.assertEqual(self.coordinator.schedule_status, "missing")
+
+    def test_issue_38_smart_holiday_uses_actual_weekday(self):
+        self.coordinator.cz_holidays = {date(2026, 10, 28)}
+        with patch.object(
+            coordinator_module.dt_util, "DEFAULT_TIME_ZONE", timezone.utc
+        ):
+            data = self.coordinator._parse_times(
+                [issue_38_record()], datetime(2026, 10, 28, 11)
+            )
+
+        self.assertEqual(data["hdo_times_today"], slots(ISSUE_38_WEEKDAY))
+        self.assertFalse(data["is_active"])
+        self.assertEqual(
+            data["next_change"].replace(tzinfo=None),
+            datetime(2026, 10, 28, 13, 15),
+        )
+
+    def test_classic_hdo_holiday_still_uses_sunday_schedule(self):
+        self.coordinator.cz_holidays = {date(2026, 10, 28)}
+        with patch.object(
+            coordinator_module.dt_util, "DEFAULT_TIME_ZONE", timezone.utc
+        ):
+            data = self.coordinator._parse_times(
+                [issue_38_record("ZAPAD")], datetime(2026, 10, 28, 11)
+            )
+
+        self.assertEqual(data["hdo_times_today"], slots(CLASSIC_218_WEEKEND))
+
+    def test_nonclassic_regions_use_weekday_schedule_on_holiday(self):
+        self.coordinator.cz_holidays = {date(2026, 10, 28)}
+        for region in ("SM", "TOU", "PH", "UNKNOWN"):
+            with self.subTest(region=region):
+                with patch.object(
+                    coordinator_module.dt_util,
+                    "DEFAULT_TIME_ZONE",
+                    timezone.utc,
+                ):
+                    data = self.coordinator._parse_times(
+                        [issue_38_record(region)], datetime(2026, 10, 28, 11)
+                    )
+                self.assertEqual(data["hdo_times_today"], slots(ISSUE_38_WEEKDAY))
+
+    def test_smart_and_classic_tomorrow_holiday_use_expected_schedules(self):
+        self.coordinator.cz_holidays = {date(2026, 10, 28)}
+        with patch.object(
+            coordinator_module.dt_util, "DEFAULT_TIME_ZONE", timezone.utc
+        ):
+            smart_data = self.coordinator._parse_times(
+                [issue_38_record()], datetime(2026, 10, 27, 11)
+            )
+            classic_data = self.coordinator._parse_times(
+                [issue_38_record("ZAPAD")], datetime(2026, 10, 27, 11)
+            )
+
+        self.assertEqual(smart_data["hdo_times_tomorrow"], slots(ISSUE_38_WEEKDAY))
+        self.assertEqual(
+            classic_data["hdo_times_tomorrow"], slots(CLASSIC_218_WEEKEND)
+        )
+
+    def test_day_matcher_applies_holiday_rule_only_when_requested(self):
+        holiday = date(2026, 10, 28)
+        self.coordinator.cz_holidays = {holiday}
+
+        self.assertTrue(self.coordinator._is_matching_day(holiday, 3, False))
+        self.assertFalse(self.coordinator._is_matching_day(holiday, 7, False))
+        self.assertFalse(self.coordinator._is_matching_day(holiday, 3, True))
+        self.assertTrue(self.coordinator._is_matching_day(holiday, 7, True))
+
+    def test_smart_holiday_on_saturday_keeps_saturday_schedule(self):
+        self.coordinator.cz_holidays = {date(2026, 12, 26)}
+        smart_record = issue_38_record()
+        classic_record = issue_38_record("ZAPAD")
+        for schedule in (smart_record, classic_record):
+            schedule["od"]["mesic"] = "11"
+            schedule["do"]["mesic"] = "01"
+            schedule["sazby"][0]["dny"][5]["casy"] = slots(
+                [("05:00:00", "06:00:00")]
+            )
+            schedule["sazby"][0]["dny"][6]["casy"] = slots(
+                [("07:00:00", "08:00:00")]
+            )
+
+        with patch.object(
+            coordinator_module.dt_util, "DEFAULT_TIME_ZONE", timezone.utc
+        ):
+            smart_data = self.coordinator._parse_times(
+                [smart_record], datetime(2026, 12, 26, 9)
+            )
+            classic_data = self.coordinator._parse_times(
+                [classic_record], datetime(2026, 12, 26, 9)
+            )
+
+        self.assertEqual(
+            smart_data["hdo_times_today"], slots([("05:00:00", "06:00:00")])
+        )
+        self.assertEqual(
+            classic_data["hdo_times_today"], slots([("07:00:00", "08:00:00")])
+        )
+
+    def test_smart_full_week_schedule_is_unchanged_on_holiday(self):
+        self.coordinator.cz_holidays = {date(2026, 11, 17)}
+        full_week = [("02:30:00", "06:30:00"), ("13:30:00", "16:00:00")]
+        full_week_record = record(
+            "C25d,D25d-rel\u00e92-TUV", full_week, full_week
+        )
+        full_week_record["od"]["mesic"] = "11"
+        full_week_record["do"]["mesic"] = "01"
+
+        with patch.object(
+            coordinator_module.dt_util, "DEFAULT_TIME_ZONE", timezone.utc
+        ):
+            data = self.coordinator._parse_times(
+                [full_week_record], datetime(2026, 11, 17, 11)
+            )
+
+        self.assertEqual(data["hdo_times_today"], slots(full_week))
 
 
 if __name__ == "__main__":
