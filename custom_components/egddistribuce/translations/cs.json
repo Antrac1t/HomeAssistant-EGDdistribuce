@@ -44,14 +44,14 @@
         }
       },
       "smart": {
-        "title": "Smart metr",
+        "title": "Chytré elektroměry",
         "description": "Vyberte kód vašeho chytrého měřiče (např. ACd4510). Do pole lze psát, seznam se filtruje. Seznam se načítá z EG.D.",
         "data": {
-          "hdo_code": "Kód smart metru"
+          "hdo_code": "Kód chytrého elektroměru"
         }
       },
       "smart_settings": {
-        "title": "Smart metr {code}",
+        "title": "Chytrý elektroměr {code}",
         "description": "Nastavte rozpis relé (pokud kód obsahuje více rozpisů), ceny a barvy. Pro přímotopy / akumulaci bývá správně relé označené PV.",
         "data": {
           "schedule": "Rozpis relé",
@@ -111,7 +111,7 @@
       "options": {
         "classic": "Klasické HDO (A+B+DP)",
         "hdo_codes": "Více HDO příkazů (kódy)",
-        "smart": "Smart metr (speciální přístroje)"
+        "smart": "Chytré elektroměry (speciální přístroje)"
       }
     }
   },
