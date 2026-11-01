@@ -10,7 +10,7 @@
       },
       "classic": {
         "title": "Klasické HDO (A+B+DP)",
-        "description": "Zadejte PSČ a kódy A, B, DP z vašeho elektroměru",
+        "description": "Zadejte PSČ a kódy A, B, DP z vašeho elektroměru. Ceny zadávejte v měně nastavené v Home Assistantu ({currency}) za kWh.",
         "data": {
           "psc": "PSČ",
           "code_a": "Kód A (1-9)",
@@ -18,29 +18,23 @@
           "code_dp": "Kód DP (01-16)",
           "price_vt": "Cena VT (vysoký tarif)",
           "price_nt": "Cena NT (nízký tarif)",
-          "price_unit": "Jednotka ceny",
           "color_vt": "Barva VT (hex)",
           "color_nt": "Barva NT (hex)"
-        },
-        "data_description": {
-          "price_unit": "Jednotka cen VT/NT a senzoru Aktuální cena. Výchozí Kč/kWh, lze zadat i vlastní."
         }
       },
       "hdo_codes": {
         "title": "HDO příkazy (kódy)",
-        "description": "Zadejte PSČ a HDO kódy oddělené čárkou (např. 405,406,410)",
+        "description": "Zadejte PSČ a HDO kódy oddělené čárkou (např. 405,406,410). Ceny zadávejte v měně nastavené v Home Assistantu ({currency}) za kWh.",
         "data": {
           "psc": "PSČ",
           "hdo_code": "HDO kódy (oddělené čárkou)",
           "price_vt": "Cena VT (vysoký tarif)",
           "price_nt": "Cena NT (nízký tarif)",
-          "price_unit": "Jednotka ceny",
           "color_vt": "Barva VT (hex)",
           "color_nt": "Barva NT (hex)"
         },
         "data_description": {
-          "hdo_code": "Příklad: 405,406,410 nebo jen 405",
-          "price_unit": "Jednotka cen VT/NT a senzoru Aktuální cena. Výchozí Kč/kWh, lze zadat i vlastní."
+          "hdo_code": "Příklad: 405,406,410 nebo jen 405"
         }
       },
       "smart": {
@@ -52,18 +46,16 @@
       },
       "smart_settings": {
         "title": "Chytrý elektroměr {code}",
-        "description": "Nastavte rozpis relé (pokud kód obsahuje více rozpisů), ceny a barvy. Pro přímotopy / akumulaci bývá správně relé označené PV.",
+        "description": "Nastavte rozpis relé (pokud kód obsahuje více rozpisů), ceny a barvy. Ceny zadávejte v měně nastavené v Home Assistantu ({currency}) za kWh. Pro přímotopy / akumulaci bývá správně relé označené PV.",
         "data": {
           "schedule": "Rozpis relé",
           "price_vt": "Cena VT (vysoký tarif)",
           "price_nt": "Cena NT (nízký tarif)",
-          "price_unit": "Jednotka ceny",
           "color_vt": "Barva VT (hex)",
           "color_nt": "Barva NT (hex)"
         },
         "data_description": {
-          "schedule": "Rozpis, který určuje váš nízký tarif. Rozpisy se nesčítají.",
-          "price_unit": "Jednotka cen VT/NT a senzoru Aktuální cena. Výchozí Kč/kWh, lze zadat i vlastní."
+          "schedule": "Rozpis, který určuje váš nízký tarif. Rozpisy se nesčítají."
         }
       }
     },
@@ -92,16 +84,12 @@
     "step": {
       "init": {
         "title": "Úprava nastavení",
-        "description": "Změňte ceny, jednotku a barvy tarifů",
+        "description": "Změňte ceny a barvy tarifů. Ceny zadávejte v měně nastavené v Home Assistantu ({currency}) za kWh.",
         "data": {
           "price_vt": "Cena VT (vysoký tarif)",
           "price_nt": "Cena NT (nízký tarif)",
-          "price_unit": "Jednotka ceny",
           "color_vt": "Barva VT (hex)",
           "color_nt": "Barva NT (hex)"
-        },
-        "data_description": {
-          "price_unit": "Jednotka cen VT/NT a senzoru Aktuální cena. Výchozí Kč/kWh, lze zadat i vlastní."
         }
       }
     }

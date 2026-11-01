@@ -38,6 +38,7 @@ class SmartFlowTests(unittest.IsolatedAsyncioTestCase):
     def make_flow(self, entries=None):
         flow = config_flow.ConfigFlow()
         flow.hass = SimpleNamespace(
+            config=SimpleNamespace(currency="CZK"),
             config_entries=SimpleNamespace(
                 async_entries=lambda domain: entries or []
             )
@@ -74,6 +75,29 @@ class SmartFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(selector.config["options"], ["ACd4510", "Cd56"])
         # custom value makes the frontend picker searchable
         self.assertTrue(selector.config["custom_value"])
+
+    async def test_classic_settings_use_system_currency_and_fixed_kwh(self):
+        flow = self.make_flow()
+        result = await flow.async_step_classic()
+        schema = result["data_schema"].schema
+        self.assertNotIn("price_unit", [str(key) for key in schema])
+        self.assertEqual(result["description_placeholders"]["currency"], "CZK")
+
+    async def test_options_do_not_offer_a_price_unit(self):
+        options_flow = config_flow.OptionsFlowHandler(
+            SimpleNamespace(data={}, options={})
+        )
+        options_flow.hass = SimpleNamespace(
+            config=SimpleNamespace(currency="CZK")
+        )
+
+        result = await options_flow.async_step_init()
+
+        self.assertNotIn(
+            "price_unit",
+            [str(key) for key in result["data_schema"].schema],
+        )
+        self.assertEqual(result["description_placeholders"]["currency"], "CZK")
 
     async def test_unknown_typed_code_shows_error_and_keeps_text(self):
         flow = self.make_flow()
@@ -122,6 +146,8 @@ class SmartFlowTests(unittest.IsolatedAsyncioTestCase):
         schema = result["data_schema"]
         self.assertIn(config_flow.CONF_SCHEDULE, [str(key) for key in schema.schema])
         self.assertIn(config_flow.CONF_PRICE_NT, [str(key) for key in schema.schema])
+        self.assertNotIn("price_unit", [str(key) for key in schema.schema])
+        self.assertEqual(result["description_placeholders"]["currency"], "CZK")
         self.assertEqual(schema({})[config_flow.CONF_SCHEDULE], PV)
 
         result = await flow.async_step_smart_settings(
