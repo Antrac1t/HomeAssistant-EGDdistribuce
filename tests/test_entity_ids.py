@@ -124,6 +124,17 @@ class EntityIdTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIsNotNone(entity.device_entry)
         self.assertEqual(len(self.registry.entities), 7)
 
+    async def test_current_price_supports_long_term_statistics(self):
+        self.coordinator.data = {"current_price": 1.5}
+        entity = await self.add_entity(
+            "sensor", sensor.EGDDistribuceCurrentPriceSensor
+        )
+        state = self.hass.states.get(entity.entity_id)
+        self.assertEqual(state.attributes.get("state_class"), "measurement")
+        self.assertNotIn("device_class", state.attributes)
+        self.assertEqual(state.attributes.get("icon"), "mdi:currency-eur")
+        self.assertEqual(state.attributes.get("unit_of_measurement"), "Kč/kWh")
+
     async def test_legacy_and_custom_ids_are_not_renamed_or_duplicated(self):
         for domain, key, entity_type in ENTITY_TYPES:
             with self.subTest(key=key):

@@ -8,6 +8,7 @@ from typing import Any
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
+    SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CURRENCY_EURO
@@ -53,8 +54,11 @@ class EGDDistribuceCurrentPriceSensor(EGDBaseEntity, SensorEntity):
     """Sensor for current electricity price."""
 
     _attr_has_entity_name = True
-    _attr_device_class = SensorDeviceClass.MONETARY
-    _attr_state_class = None
+    # Price per kWh is not a monetary amount (HA requires an ISO 4217 unit and
+    # state_class TOTAL for MONETARY), so keep no device class to allow
+    # MEASUREMENT long-term statistics.
+    _attr_device_class = None
+    _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
 
     def __init__(
