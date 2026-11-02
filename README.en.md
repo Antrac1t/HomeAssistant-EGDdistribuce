@@ -1,8 +1,11 @@
-> 🇨🇿 **Český popis najdete zde: [README.md](./README.md)**
+> ![Čeština](https://flagcdn.com/16x12/cz.png) **Český popis [najdete zde](./README.md).**
 
 # EGD Distribuce - Home Assistant Sensor
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
+[![GitHub Release][releases-shield]][releases]
+[![Marketplace][marketplacebadge]][marketplace]
+![Validate][validate-shield]
+[![License][license-shield]](./LICENSE)
 
 A Home Assistant integration that downloads **HDO (Hromadné dálkové ovládání – ripple control)** data from the **EG.D Distribuce** API.  
 It lets you track the periods of **low (NT)** and **high tariff (VT)** electricity in the Czech Republic.
@@ -10,8 +13,6 @@ It lets you track the periods of **low (NT)** and **high tariff (VT)** electrici
 The integration supports both **classic electricity meters** and **smart meters**, and is fully configurable through the **Home Assistant graphical interface (GUI)**.
 
 ---
-
-Enter VT/NT prices in the currency configured in Home Assistant per kWh. The integration fixes the energy unit to kWh and takes the currency from the system setting. With CZK, the sensor keeps its `Kč/kWh` unit to preserve existing long-term statistics.
 
 ## Features
 
@@ -36,6 +37,8 @@ Enter VT/NT prices in the currency configured in Home Assistant per kWh. The int
 | Sensor | **Next HDO Change** | Timestamp of the next tariff change (the frontend shows a countdown) |
 | Sensor | **Next HDO Slot** | Next HDO time slot |
 | Button | **Refresh API data** | Download data from the API immediately |
+
+![Integration entities in Home Assistant](./docs/integration.en.png)
 
 ### IDs of new entities
 
@@ -84,12 +87,11 @@ The code is selected from a list that the integration downloads from https://hdo
 
 The setup has three screens: configuration type, selection of the smart meter code from the list, and settings (relay schedule, prices, colors). The schedule field is shown only for codes that contain separate schedules for multiple relays (for example `ACd4510`: relay 1 – PV and relay 2 – TUV). The selected schedule is used for the attributes, the HDO state and the price; schedules are not combined. The schedule labelled **PV** is preselected (otherwise the first relay).
 
+Enter VT/NT prices in the currency configured in Home Assistant per kWh. The integration fixes the energy unit to kWh and takes the currency from the system setting. With CZK, the sensor keeps its `Kč/kWh` unit to preserve existing long-term statistics.
+
 Older setups without a saved schedule use the same default rule (PV, otherwise the first relay) and Home Assistant shows a warning in Repairs. The schedule of an existing entry cannot be changed yet – remove the integration and add it again. The same warning is shown if EG.D no longer offers the saved schedule.
 
-![Smart meter relay schedule selection](./docs/smart-meter.png)
-
-The screenshot shows the older form; the current code and schedule selection
-steps are described above.
+![Smart meter code on the display](./docs/smart-meter.png)
 
 ---
 
@@ -103,52 +105,41 @@ steps are described above.
 
 ## Installation
 
-### Option 1: Via Marketplace (Home Assistant 2026.11 and newer, recommended)
+### Option 1: Via Marketplace / HACS
 Since Home Assistant 2026.11, HACS is built into Home Assistant and is called **Marketplace**.
 
-1. Go to **Settings** → **Marketplace** → **Browse** → **Add from link**
+1. Install
 
-2. Paste this URL: `https://github.com/Antrac1t/HomeAssistant-EGDdistribuce`
+    [![Open your Home Assistant instance and add this repository in Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=Antrac1t&repository=HomeAssistant-EGDdistribuce)
 
-3. Click Install.
+    Alternatively, in HACS go to **Integrations** → **⋮** → **Custom repositories**, add `https://github.com/Antrac1t/HomeAssistant-EGDdistribuce`, then download the integration.
 
-4. Restart Home Assistant
-
-
-### Option 2: Via HACS (deprecated, Home Assistant older than 2026.11)
-1. Make sure [HACS](https://hacs.xyz/) is installed
-
-2. Go to HACS → Integrations
-
-3. Click the menu (⋮) in the top right → Custom repositories
-
-4. Add this URL: `https://github.com/Antrac1t/HomeAssistant-EGDdistribuce`
-
-5. Click Install.
-
-6. Restart Home Assistant
+2. **Restart Home Assistant**
 
 
-### Option 3: Manual
+### Option 2: Manual
+<details>
+<summary>Manual installation</summary>
+
 1. Download the latest release
 
 2. Copy the `custom_components/egddistribuce` folder to your `config/custom_components/` folder
 
 3. Restart Home Assistant
+</details>
 
 
 ## Configuration
 
-1. Go to **Settings** → **Devices & services**
+1. Add the integration
 
-2. Click **+ Add integration**
+    [![Open your Home Assistant instance and start setting up the integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=egddistribuce)
 
-3. Search for "**EGD Distribuce**"
+2. **Select the configuration type:**
 
-4. **Select the configuration type:**   
-![Configuration type](./docs/conf-types.en.png)
+    ![Configuration type](./docs/conf-types.en.png)
 
-5. Enter the required data (postal code, A/B/DP codes or HDO codes); for a smart meter, select a code from the list and a relay schedule if offered. Optionally set VT/NT prices and tariff colors. Prices and colors can be changed later in the integration **Settings**.
+3. Enter the required data (postal code, A/B/DP codes or HDO codes); for a smart meter, select a code from the list and a relay schedule if offered. Optionally set VT/NT prices and tariff colors. Prices and colors can be changed later in the integration **Settings**.
 
 
 ## HDO Timeline setup
@@ -247,3 +238,12 @@ trigger:
 
 - PRE Distribuce - Home Assistant Sensor (https://github.com/slesinger/HomeAssistant-PREdistribuce)
 - CEZ Distribuce - Home Assistant Sensor (https://github.com/Cmajda/ha_cez_distribuce)
+
+<!-- -->
+
+[marketplace]: https://home-assistant.io/integrations/marketplace
+[marketplacebadge]: https://img.shields.io/badge/Marketplace-Default-41BDF5.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/github/license/Antrac1t/HomeAssistant-EGDdistribuce.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/github/release/Antrac1t/HomeAssistant-EGDdistribuce.svg?style=for-the-badge
+[releases]: https://github.com/Antrac1t/HomeAssistant-EGDdistribuce/releases
+[validate-shield]: https://img.shields.io/github/actions/workflow/status/Antrac1t/HomeAssistant-EGDdistribuce/validate.yaml?label=Validate&style=for-the-badge

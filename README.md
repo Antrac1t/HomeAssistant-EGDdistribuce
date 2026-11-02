@@ -1,8 +1,13 @@
-> 🇬🇧 **English description can be found here: [README.en.md](./README.en.md)**
+> ![English](https://flagcdn.com/16x12/gb.png) **English description can be [found here](./README.en.md).**
 
 # EGD Distribuce - Home Assistant Sensor
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
+[![GitHub Release][releases-shield]][releases]
+[![marketplace][marketplacebadge]][marketplace]
+![Validate][validate-shield]
+[![License][license-shield]](./LICENSE)
+<!-- [![Downloads][download-latest-shield]]() -->
+<!-- [![Installs][marketplace-installs-shield]][hacs-install] -->
 
 Integrace pro Home Assistant sloužící ke stahování **HDO (Hromadné dálkové ovládání)** dat z API **EG.D Distribuce**.  
 Umožňuje sledovat období **nízkého (NT)** a **vysokého tarifu (VT)** elektřiny v České republice.
@@ -34,6 +39,8 @@ Integrace podporuje jak **klasické elektroměry**, tak **chytré elektroměry**
 | Senzor | **Další změna HDO** | Časové razítko příští změny tarifu (frontend zobrazí odpočet) |
 | Senzor | **Další HDO čas** | Příští HDO časový slot |
 | Tlačítko | **Obnovit data z API** | Okamžité stažení dat z API |
+
+![Přehled entit integrace](./docs/integration.cs.png)
 
 ### ID nových entit
 
@@ -86,9 +93,7 @@ Ceny VT/NT zadávejte v měně nastavené v Home Assistantu za kWh. Jednotku ene
 
 Starší nastavení bez uloženého rozpisu používá stejné výchozí pravidlo (PV, jinak první relé) a Home Assistant zobrazí upozornění v Opravách. Rozpis stávajícího záznamu zatím nelze změnit – integraci odeberte a přidejte znovu. Stejné upozornění se zobrazí, pokud EG.D už uložený rozpis nenabízí.
 
-![Výběr rozpisu relé pro chytrý elektroměr](./docs/smart-meter.png)
-
-Obrázek zachycuje starší formulář; aktuální výběr kódu a rozpisu popisují kroky výše.
+![Kód chytrého elektroměru na displeji](./docs/smart-meter.png)
 
 ---
 
@@ -102,52 +107,41 @@ Obrázek zachycuje starší formulář; aktuální výběr kódu a rozpisu popis
 
 ## Instalace
 
-### Možnost 1: Přes Marketplace (Home Assistant 2026.11 a novější, doporučeno)
+### Možnost 1: Přes Marketplace / HACS
 Od verze Home Assistant 2026.11 je HACS součástí Home Assistantu pod názvem **Marketplace**.
 
-1. Jděte do **Nastavení** → **Marketplace** → **Procházet** → **Přidat z odkazu**
+1. Nainstalujte integraci
 
-2. Vložte tuto URL: `https://github.com/Antrac1t/HomeAssistant-EGDdistribuce`
+    [![Otevřete instanci Home Assistantu a otevřete repozitář v Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=Antrac1t&repository=HomeAssistant-EGDdistribuce)
 
-3. Klikněte Instalovat.
+    Nebo v HACS otevřete **Integrace** → nabídku **⋮** → **Vlastní repozitáře**, přidejte `https://github.com/Antrac1t/HomeAssistant-EGDdistribuce` a integraci stáhněte.
 
-4. Restartujte Home Assistant
-
-
-### Možnost 2: Přes HACS (deprecated, Home Assistant starší než 2026.11)
-1. Ujistěte se, že máte nainstalovaný [HACS](https://hacs.xyz/)
-
-2. Jděte do HACS → Integrace
-
-3. Klikněte na menu (⋮) vpravo nahoře → Vlastní repozitáře
-
-4. Přidejte tuto URL: `https://github.com/Antrac1t/HomeAssistant-EGDdistribuce`
-
-5. Klikněte Instalovat.
-
-6. Restartujte Home Assistant
+2. **Restartujte Home Assistant**
 
 
-### Možnost 3: Manuálně
-1. Stáhněte nejnovější release
+### Možnost 2: Manuálně
+<details>
+<summary>Manuální instalace</summary>
+
+1. Stáhněte nejnovější vydání
 
 2. Zkopírujte složku `custom_components/egddistribuce` do vaší složky `config/custom_components/`
 
 3. Restartujte Home Assistant
+</details>
 
 
 ## Konfigurace
 
-1. Jděte na **Nastavení** → **Zařízení a služby**
+1. Přidejte integraci
 
-2. Klikněte **+ Přidat integraci**
+    [![Otevřete instanci Home Assistantu a začněte nastavovat novou integraci.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=egddistribuce)
 
-3. Vyhledejte "**EGD Distribuce**"
+2. **Vyberte typ konfigurace:**
 
-4. **Vyberte typ konfigurace:**   
-![Typ konfigurace](./docs/conf-types.cs.png)
+    ![Typ konfigurace](./docs/conf-types.cs.png)
 
-5. Zadejte požadované údaje (PSČ, kódy A/B/DP nebo HDO kódy); u chytrého elektroměru vyberte kód ze seznamu a případně rozpis relé. Nastavte volitelně ceny VT/NT a barvy tarifů. Ceny i barvy lze později změnit v **Nastavení** integrace.
+3. Zadejte požadované údaje (PSČ, kódy A/B/DP nebo HDO kódy); u chytrého elektroměru vyberte kód ze seznamu a případně rozpis relé. Nastavte volitelně ceny VT/NT a barvy tarifů. Ceny i barvy lze později změnit v **Nastavení** integrace.
 
 
 ## HDO Timeline nastavení
@@ -246,3 +240,17 @@ trigger:
 
 - PRE Distribuce - Home Assistant Sensor (https://github.com/slesinger/HomeAssistant-PREdistribuce)
 - CEZ Distribuce - Home Assistant Sensor (https://github.com/Cmajda/ha_cez_distribuce)
+
+<!-- -->
+
+[marketplace]: https://home-assistant.io/integrations/marketplace
+[marketplacebadge]: https://img.shields.io/badge/Marketplace-Default-41BDF5.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/github/license/Antrac1t/HomeAssistant-EGDdistribuce.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/github/release/Antrac1t/HomeAssistant-EGDdistribuce.svg?style=for-the-badge
+[releases]: https://github.com/Antrac1t/HomeAssistant-EGDdistribuce/releases
+[download-latest-shield]: https://img.shields.io/github/downloads/Antrac1t/HomeAssistant-EGDdistribuce/latest/total?style=for-the-badge
+[marketplace-installs-shield]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fanalytics.home-assistant.io%2Fcustom_integrations.json&query=%24.battery_notes.total&style=for-the-badge&label=Marketplace%20installs
+[marketplace-install]: https://my.home-assistant.io/redirect/marketplace_repository/?owner=andrew-codechimp&repository=battery_notes&category=integration
+[validate-shield]: https://img.shields.io/github/actions/workflow/status/Antrac1t/HomeAssistant-EGDdistribuce/validate.yaml?label=Validate&style=for-the-badge
+
+[hacs-install]: https://my.home-assistant.io/redirect/hacs_repository/?owner=andrew-codechimp&repository=HA-Battery-Notes&category=Integration
