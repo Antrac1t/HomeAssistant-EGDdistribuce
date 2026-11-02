@@ -1,6 +1,11 @@
 # EGD Distribuce - Home Assistant Sensor
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
+[![GitHub Release][releases-shield]][releases]
+[![marketplace][marketplacebadge]][marketplace]
+![Validate][validate-shield]
+[![License][license-shield]](./LICENSE)
+<!-- [![Downloads][download-latest-shield]]() -->
+<!-- [![Installs][marketplace-installs-shield]][hacs-install] -->
 
 Integrace pro Home Assistant sloužící ke stahování **HDO (Hromadné dálkové ovládání)** dat z API **EG.D Distribuce**.  
 Umožňuje sledovat období **nízkého (NT)** a **vysokého tarifu (VT)** elektřiny v České republice.
@@ -197,4 +202,18 @@ For the newly added integration to be loaded, HA needs to be restarted.
 ## References
 
 - PRE Distribuce - Home Assistant Sensor (https://github.com/slesinger/HomeAssistant-PREdistribuce)
-- CEZ Distribuce - Home Assistant Sensor (https://github.com/zigul/HomeAssistant-CEZdistribuce)
+- CEZ Distribuce - Home Assistant Sensor (https://github.com/Cmajda/ha_cez_distribuce)
+
+<!-- -->
+
+[marketplace]: https://home-assistant.io/integrations/marketplace
+[marketplacebadge]: https://img.shields.io/badge/Marketplace-Default-41BDF5.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/github/license/Antrac1t/HomeAssistant-EGDdistribuce.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/github/release/Antrac1t/HomeAssistant-EGDdistribuce.svg?style=for-the-badge
+[releases]: https://github.com/Antrac1t/HomeAssistant-EGDdistribuce/releases
+[download-latest-shield]: https://img.shields.io/github/downloads/Antrac1t/HomeAssistant-EGDdistribuce/latest/total?style=for-the-badge
+[marketplace-installs-shield]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fanalytics.home-assistant.io%2Fcustom_integrations.json&query=%24.battery_notes.total&style=for-the-badge&label=Marketplace%20installs
+[marketplace-install]: https://my.home-assistant.io/redirect/marketplace_repository/?owner=andrew-codechimp&repository=battery_notes&category=integration
+[validate-shield]: https://img.shields.io/github/actions/workflow/status/Antrac1t/HomeAssistant-EGDdistribuce/validate.yaml?label=Validate&style=for-the-badge
+
+[hacs-install]: https://my.home-assistant.io/redirect/hacs_repository/?owner=andrew-codechimp&repository=HA-Battery-Notes&category=Integration
