@@ -11,6 +11,8 @@ The integration supports both **classic electricity meters** and **smart meters*
 
 ---
 
+Enter VT/NT prices in the currency configured in Home Assistant per kWh. The integration fixes the energy unit to kWh and takes the currency from the system setting. With CZK, the sensor keeps its `Kč/kWh` unit to preserve existing long-term statistics.
+
 ## Features
 
 - Configuration via GUI (no YAML needed)
@@ -21,7 +23,7 @@ The integration supports both **classic electricity meters** and **smart meters*
 - Detailed attributes for automations and graphs
 - Validation of the entered postal code (PSČ) and HDO codes
 - HDO Timeline - a simple graph card
-- Configurable VT/NT prices, price unit and tariff colors (also changeable later in the integration **Settings**)
+- Configurable VT/NT prices and tariff colors (also changeable later in the integration **Settings**)
 
 ### Entities
 
@@ -72,26 +74,19 @@ again creates a new registration and may not preserve the old IDs.
 For traditional electricity meters using a combination of **A**, **B** and **DP** codes. You enter the postal code, code A (1-9), code B (1-9) and code DP (01-16).
 
 For classic HDO, public holidays follow the weekend schedule. For smart commands they follow the actual weekday, so a holiday on a Wednesday uses the Wednesday times.
-![Classic HDO (A+B+DP)](docs/conf-classic.en.png)
-
 
 ### 2. Multiple HDO commands (codes)
 For electricity meters with multiple HDO commands (e.g. different relays for water heating, space heating, etc.). You enter the postal code and HDO codes separated by a comma (e.g. `405,406,410`).
-
-![Multiple HDO commands (codes)](docs/conf-commands.en.png)
-
 
 ### 3. Smart meter (special devices)
 Smart meters with special codes (ACd4510, Cd56, Cd2526_3, etc.).
 The code is selected from a list that the integration downloads from https://hdo.distribuce24.cz/casy. You can type into the field to filter the list. Letter case does not matter and a non-existent code is rejected. Some meters show a hyphen instead of an underscore: look up code `CD2526-3` in the list as `Cd2526_3`. If the list cannot be downloaded, the setup is aborted and can be repeated later.
 
-The setup has three screens: configuration type, selection of the smart meter code from the list, and settings (relay schedule, prices, unit, colors). The schedule field is shown only for codes that contain separate schedules for multiple relays (for example `ACd4510`: relay 1 – PV and relay 2 – TUV). The selected schedule is used for the attributes, the HDO state and the price; schedules are not combined. The schedule labelled **PV** is preselected (otherwise the first relay).
+The setup has three screens: configuration type, selection of the smart meter code from the list, and settings (relay schedule, prices, colors). The schedule field is shown only for codes that contain separate schedules for multiple relays (for example `ACd4510`: relay 1 – PV and relay 2 – TUV). The selected schedule is used for the attributes, the HDO state and the price; schedules are not combined. The schedule labelled **PV** is preselected (otherwise the first relay).
 
 Older setups without a saved schedule use the same default rule (PV, otherwise the first relay) and Home Assistant shows a warning in Repairs. The schedule of an existing entry cannot be changed yet – remove the integration and add it again. The same warning is shown if EG.D no longer offers the saved schedule.
 
 ![Smart meter relay schedule selection](https://github.com/user-attachments/assets/aaa17e89-8873-48ff-856e-0d6f7f3b9bd3)
-
-![Smart meter](docs/conf-smart.en.png)
 
 The screenshot shows the older form; the current code and schedule selection
 steps are described above.
@@ -141,7 +136,7 @@ steps are described above.
 4. **Select the configuration type:**   
 ![Configuration type](docs/conf-types.en.png)
 
-5. Enter the required data (postal code, A/B/DP codes or HDO codes); for a smart meter, select a code from the list and a relay schedule if offered. Optionally set VT/NT prices, price unit and tariff colors. Prices, unit and colors can be changed later in the integration **Settings**.
+5. Enter the required data (postal code, A/B/DP codes or HDO codes); for a smart meter, select a code from the list and a relay schedule if offered. Optionally set VT/NT prices and tariff colors. Prices and colors can be changed later in the integration **Settings**.
 
 
 ## HDO Timeline setup

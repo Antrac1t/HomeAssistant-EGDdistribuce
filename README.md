@@ -21,7 +21,7 @@ Integrace podporuje jak **klasické elektroměry**, tak **chytré elektroměry**
 - Detailní atributy pro automatizace a grafy
 - Validace zadaných PSČ a HDO kódů
 - HDO Timeline - zobrazení jednoduchého grafu
-- Nastavitelné ceny VT/NT, jednotka ceny a barvy tarifů (i dodatečně v **Nastavení** integrace)
+- Nastavitelné ceny VT/NT a barvy tarifů (i dodatečně v **Nastavení** integrace)
 
 ### Entity
 
@@ -73,26 +73,20 @@ Určeno pro tradiční elektroměry využívající kombinaci kódů **A**, **B*
 
 U klasického HDO se státní svátky řídí víkendovým rozpisem. U smart povelů se řídí skutečným dnem v týdnu, takže svátek ve středu použije středeční časy.
 
-![Klasické HDO (A+B+DP)](docs/conf-classic.cs.png)
-
-
 ### 2. Více HDO příkazů (kódy)
 Pro elektroměry s více HDO příkazy (např. různá relé pro ohřev vody, topení, atd.). Zadáváte PSČ a HDO kódy oddělené čárkou (např. `405,406,410`).
-
-![Více HDO příkazů (kódy)](docs/conf-commands.cs.png)
-
 
 ### 3. Chytré elektroměry (speciální přístroje)
 Chytré měřiče se speciálními kódy (ACd4510, Cd56, Cd2526_3, atd.).
 Kód se vybírá ze seznamu, který integrace stáhne z https://hdo.distribuce24.cz/casy. Do pole lze psát, seznam se tím filtruje. Na velikosti písmen nezáleží, neexistující kód se odmítne. Některé elektroměry zobrazují pomlčku místo podtržítka: kód `CD2526-3` hledejte v seznamu jako `Cd2526_3`. Pokud se seznam nepodaří stáhnout, nastavení se přeruší a lze ho zopakovat později.
 
-Nastavení má tři obrazovky: typ konfigurace, výběr kódu smart metru ze seznamu a nastavení (rozpis relé, ceny, jednotka, barvy). Pole s rozpisem se zobrazí jen u kódů, které obsahují samostatné rozpisy pro více relé (například `ACd4510`: relé 1 – PV a relé 2 – TUV). Vybraný rozpis se použije pro atributy, stav HDO i cenu; rozpisy se nesčítají. Předvybrán je rozpis označený **PV** (jinak první relé).
+Nastavení má tři obrazovky: typ konfigurace, výběr kódu smart metru ze seznamu a nastavení (rozpis relé, ceny, barvy). Pole s rozpisem se zobrazí jen u kódů, které obsahují samostatné rozpisy pro více relé (například `ACd4510`: relé 1 – PV a relé 2 – TUV). Vybraný rozpis se použije pro atributy, stav HDO i cenu; rozpisy se nesčítají. Předvybrán je rozpis označený **PV** (jinak první relé).
+
+Ceny VT/NT zadávejte v měně nastavené v Home Assistantu za kWh. Jednotku energie integrace drží pevně na kWh; měnu přebírá ze systémového nastavení. Při měně CZK zůstává jednotka senzoru `Kč/kWh`, aby se nezměnila dosavadní dlouhodobá statistika.
 
 Starší nastavení bez uloženého rozpisu používá stejné výchozí pravidlo (PV, jinak první relé) a Home Assistant zobrazí upozornění v Opravách. Rozpis stávajícího záznamu zatím nelze změnit – integraci odeberte a přidejte znovu. Stejné upozornění se zobrazí, pokud EG.D už uložený rozpis nenabízí.
 
 ![Výběr rozpisu relé pro chytrý elektroměr](https://github.com/user-attachments/assets/aaa17e89-8873-48ff-856e-0d6f7f3b9bd3)
-
-![Chytré elektroměry](docs/conf-smart.cs.png)
 
 Obrázek zachycuje starší formulář; aktuální výběr kódu a rozpisu popisují kroky výše.
 
@@ -141,7 +135,7 @@ Obrázek zachycuje starší formulář; aktuální výběr kódu a rozpisu popis
 4. **Vyberte typ konfigurace:**   
 ![Typ konfigurace](docs/conf-types.cs.png)
 
-5. Zadejte požadované údaje (PSČ, kódy A/B/DP nebo HDO kódy); u chytrého elektroměru vyberte kód ze seznamu a případně rozpis relé. Nastavte volitelně ceny VT/NT, jednotku ceny a barvy tarifů. Ceny, jednotku i barvy lze později změnit v **Nastavení** integrace.
+5. Zadejte požadované údaje (PSČ, kódy A/B/DP nebo HDO kódy); u chytrého elektroměru vyberte kód ze seznamu a případně rozpis relé. Nastavte volitelně ceny VT/NT a barvy tarifů. Ceny i barvy lze později změnit v **Nastavení** integrace.
 
 
 ## HDO Timeline nastavení

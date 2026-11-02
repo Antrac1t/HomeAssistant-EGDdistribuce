@@ -10,7 +10,7 @@
       },
       "classic": {
         "title": "Classic HDO (A+B+DP)",
-        "description": "Enter your postal code and A, B, DP codes from your electricity meter",
+        "description": "Enter your postal code and A, B, DP codes from your electricity meter. Enter prices in your Home Assistant currency ({currency}) per kWh.",
         "data": {
           "psc": "Postal code",
           "code_a": "Code A (1-9)",
@@ -18,29 +18,23 @@
           "code_dp": "Code DP (01-16)",
           "price_vt": "High tariff price (peak, HT)",
           "price_nt": "Low tariff price (off-peak, NT)",
-          "price_unit": "Price unit",
           "color_vt": "High tariff color (HT, hex)",
           "color_nt": "Low tariff color (NT, hex)"
-        },
-        "data_description": {
-          "price_unit": "Unit of the HT/NT prices and the Current Price sensor. Defaults to Kč/kWh; a custom value can be entered."
         }
       },
       "hdo_codes": {
         "title": "HDO Commands (codes)",
-        "description": "Enter your postal code and HDO codes separated by comma (e.g. 405,406,410)",
+        "description": "Enter your postal code and HDO codes separated by comma (e.g. 405,406,410). Enter prices in your Home Assistant currency ({currency}) per kWh.",
         "data": {
           "psc": "Postal code",
           "hdo_code": "HDO codes (comma-separated)",
           "price_vt": "High tariff price (peak, HT)",
           "price_nt": "Low tariff price (off-peak, NT)",
-          "price_unit": "Price unit",
           "color_vt": "High tariff color (HT, hex)",
           "color_nt": "Low tariff color (NT, hex)"
         },
         "data_description": {
-          "hdo_code": "Example: 405,406,410 or just 405",
-          "price_unit": "Unit of the HT/NT prices and the Current Price sensor. Defaults to Kč/kWh; a custom value can be entered."
+          "hdo_code": "Example: 405,406,410 or just 405"
         }
       },
       "smart": {
@@ -52,18 +46,16 @@
       },
       "smart_settings": {
         "title": "Smart Meter {code}",
-        "description": "Set the relay schedule (if the code has several), prices and colors. For direct heating / storage the relay labelled PV is usually correct.",
+        "description": "Set the relay schedule (if the code has several), prices and colors. Enter prices in your Home Assistant currency ({currency}) per kWh. For direct heating / storage the relay labelled PV is usually correct.",
         "data": {
           "schedule": "Relay schedule",
           "price_vt": "High tariff price (peak, HT)",
           "price_nt": "Low tariff price (off-peak, NT)",
-          "price_unit": "Price unit",
           "color_vt": "High tariff color (HT, hex)",
           "color_nt": "Low tariff color (NT, hex)"
         },
         "data_description": {
-          "schedule": "The schedule that defines your low tariff. Schedules are not combined.",
-          "price_unit": "Unit of the HT/NT prices and the Current Price sensor. Defaults to Kč/kWh; a custom value can be entered."
+          "schedule": "The schedule that defines your low tariff. Schedules are not combined."
         }
       }
     },
@@ -92,16 +84,12 @@
     "step": {
       "init": {
         "title": "Adjust Settings",
-        "description": "Change tariff prices, unit and colors",
+        "description": "Change tariff prices and colors. Enter prices in your Home Assistant currency ({currency}) per kWh.",
         "data": {
           "price_vt": "High tariff price (peak, HT)",
           "price_nt": "Low tariff price (off-peak, NT)",
-          "price_unit": "Price unit",
           "color_vt": "High tariff color (HT, hex)",
           "color_nt": "Low tariff color (NT, hex)"
-        },
-        "data_description": {
-          "price_unit": "Unit of the HT/NT prices and the Current Price sensor. Defaults to Kč/kWh; a custom value can be entered."
         }
       }
     }
