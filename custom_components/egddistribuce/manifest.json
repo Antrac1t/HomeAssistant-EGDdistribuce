@@ -1,7 +1,7 @@
 {
   "domain": "egddistribuce",
   "name": "EGD Distribuce",
-  "codeowners": ["@Antrac1t"],
+  "codeowners": ["@Antrac1t", "@panther7"],
   "config_flow": true,
   "dependencies": ["frontend", "http"],
   "documentation": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce",

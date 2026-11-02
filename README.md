@@ -1,4 +1,4 @@
-> 🇬🇧 **English description can be found here: [README.en.md](README.en.md)**
+> 🇬🇧 **English description can be found here: [README.en.md](./README.en.md)**
 
 # EGD Distribuce - Home Assistant Sensor
 
@@ -86,7 +86,7 @@ Ceny VT/NT zadávejte v měně nastavené v Home Assistantu za kWh. Jednotku ene
 
 Starší nastavení bez uloženého rozpisu používá stejné výchozí pravidlo (PV, jinak první relé) a Home Assistant zobrazí upozornění v Opravách. Rozpis stávajícího záznamu zatím nelze změnit – integraci odeberte a přidejte znovu. Stejné upozornění se zobrazí, pokud EG.D už uložený rozpis nenabízí.
 
-![Výběr rozpisu relé pro chytrý elektroměr](https://github.com/user-attachments/assets/aaa17e89-8873-48ff-856e-0d6f7f3b9bd3)
+![Výběr rozpisu relé pro chytrý elektroměr](./docs/smart-meter.png)
 
 Obrázek zachycuje starší formulář; aktuální výběr kódu a rozpisu popisují kroky výše.
 
@@ -102,7 +102,19 @@ Obrázek zachycuje starší formulář; aktuální výběr kódu a rozpisu popis
 
 ## Instalace
 
-### Možnost 1: Přes HACS (doporučeno)
+### Možnost 1: Přes Marketplace (Home Assistant 2026.11 a novější, doporučeno)
+Od verze Home Assistant 2026.11 je HACS součástí Home Assistantu pod názvem **Marketplace**.
+
+1. Jděte do **Nastavení** → **Marketplace** → **Procházet** → **Přidat z odkazu**
+
+2. Vložte tuto URL: `https://github.com/Antrac1t/HomeAssistant-EGDdistribuce`
+
+3. Klikněte Instalovat.
+
+4. Restartujte Home Assistant
+
+
+### Možnost 2: Přes HACS (deprecated, Home Assistant starší než 2026.11)
 1. Ujistěte se, že máte nainstalovaný [HACS](https://hacs.xyz/)
 
 2. Jděte do HACS → Integrace
@@ -116,7 +128,7 @@ Obrázek zachycuje starší formulář; aktuální výběr kódu a rozpisu popis
 6. Restartujte Home Assistant
 
 
-### Možnost 2: Manuálně
+### Možnost 3: Manuálně
 1. Stáhněte nejnovější release
 
 2. Zkopírujte složku `custom_components/egddistribuce` do vaší složky `config/custom_components/`
@@ -133,7 +145,7 @@ Obrázek zachycuje starší formulář; aktuální výběr kódu a rozpisu popis
 3. Vyhledejte "**EGD Distribuce**"
 
 4. **Vyberte typ konfigurace:**   
-![Typ konfigurace](docs/conf-types.cs.png)
+![Typ konfigurace](./docs/conf-types.cs.png)
 
 5. Zadejte požadované údaje (PSČ, kódy A/B/DP nebo HDO kódy); u chytrého elektroměru vyberte kód ze seznamu a případně rozpis relé. Nastavte volitelně ceny VT/NT a barvy tarifů. Ceny i barvy lze později změnit v **Nastavení** integrace.
 
@@ -142,7 +154,7 @@ Obrázek zachycuje starší formulář; aktuální výběr kódu a rozpisu popis
 
 Nové i upravované dashboardy musí používat nový typ `custom:egd-hdo-card`. Starý typ `custom:hdo-chart-card` zůstává podporovaný pouze jako kompatibilní alias pro existující dashboardy; při jejich úpravě přejděte na nový typ.
 
-![Ukázka HDO Timeline karty](docs/hdo-card.cs.png)
+![Ukázka HDO Timeline karty](./docs/hdo-card.cs.png)
 
 Integrace kartu načítá automaticky, do **Zdrojů** ji není potřeba přidávat. Kartu stačí přidat do dashboardu:
 
@@ -164,7 +176,7 @@ Texty karty se překládají podle jazyka Home Assistantu. Překlady jsou v `cus
 
 HDO lze zobrazit v grafu spolu s dalšími entitami, například se spotovými cenami z integrace Czech Energy Spot Prices (https://github.com/rnovacek/homeassistant_cz_energy_spot_prices):
 
-![Graf cen elektřiny](docs/graf.png)
+![Graf cen elektřiny](./docs/graph.png)
 
 ```yaml
 type: custom:apexcharts-card

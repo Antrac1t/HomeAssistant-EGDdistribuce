@@ -1,4 +1,4 @@
-> 🇨🇿 **Český popis najdete zde: [README.md](README.md)**
+> 🇨🇿 **Český popis najdete zde: [README.md](./README.md)**
 
 # EGD Distribuce - Home Assistant Sensor
 
@@ -86,7 +86,7 @@ The setup has three screens: configuration type, selection of the smart meter co
 
 Older setups without a saved schedule use the same default rule (PV, otherwise the first relay) and Home Assistant shows a warning in Repairs. The schedule of an existing entry cannot be changed yet – remove the integration and add it again. The same warning is shown if EG.D no longer offers the saved schedule.
 
-![Smart meter relay schedule selection](https://github.com/user-attachments/assets/aaa17e89-8873-48ff-856e-0d6f7f3b9bd3)
+![Smart meter relay schedule selection](./docs/smart-meter.png)
 
 The screenshot shows the older form; the current code and schedule selection
 steps are described above.
@@ -103,7 +103,19 @@ steps are described above.
 
 ## Installation
 
-### Option 1: Via HACS (recommended)
+### Option 1: Via Marketplace (Home Assistant 2026.11 and newer, recommended)
+Since Home Assistant 2026.11, HACS is built into Home Assistant and is called **Marketplace**.
+
+1. Go to **Settings** → **Marketplace** → **Browse** → **Add from link**
+
+2. Paste this URL: `https://github.com/Antrac1t/HomeAssistant-EGDdistribuce`
+
+3. Click Install.
+
+4. Restart Home Assistant
+
+
+### Option 2: Via HACS (deprecated, Home Assistant older than 2026.11)
 1. Make sure [HACS](https://hacs.xyz/) is installed
 
 2. Go to HACS → Integrations
@@ -117,7 +129,7 @@ steps are described above.
 6. Restart Home Assistant
 
 
-### Option 2: Manual
+### Option 3: Manual
 1. Download the latest release
 
 2. Copy the `custom_components/egddistribuce` folder to your `config/custom_components/` folder
@@ -134,7 +146,7 @@ steps are described above.
 3. Search for "**EGD Distribuce**"
 
 4. **Select the configuration type:**   
-![Configuration type](docs/conf-types.en.png)
+![Configuration type](./docs/conf-types.en.png)
 
 5. Enter the required data (postal code, A/B/DP codes or HDO codes); for a smart meter, select a code from the list and a relay schedule if offered. Optionally set VT/NT prices and tariff colors. Prices and colors can be changed later in the integration **Settings**.
 
@@ -143,7 +155,7 @@ steps are described above.
 
 New and edited dashboards must use the new type `custom:egd-hdo-card`. The old type `custom:hdo-chart-card` remains supported only as a compatibility alias for existing dashboards; switch to the new type when editing them.
 
-![HDO Timeline card preview](docs/hdo-card.en.png)
+![HDO Timeline card preview](./docs/hdo-card.en.png)
 
 The integration loads the card automatically, there is no need to add it to **Resources**. Just add the card to a dashboard:
 
@@ -165,7 +177,7 @@ Card texts are translated according to the Home Assistant language. Translations
 
 You can show HDO in a graph with other entities, for example spot prices from Czech Energy Spot Prices (https://github.com/rnovacek/homeassistant_cz_energy_spot_prices):
 
-![Electricity prices graph](docs/graf.png)
+![Electricity prices graph](./docs/graph.png)
 
 ```yaml
 type: custom:apexcharts-card
