@@ -63,6 +63,7 @@
     "error": {
       "cannot_connect": "Nepodařilo se připojit k API EGD Distribuce",
       "invalid_psc": "PSČ nenalezeno v databázi EGD",
+      "invalid_color": "Barva musí být v hex formátu, např. #ff5252",
       "unknown": "Neočekávaná chyba"
     },
     "abort": {
@@ -85,6 +86,9 @@
           "price_unit": "Jednotka cen VT/NT a senzoru Aktuální cena. Výchozí Kč/kWh, lze zadat i vlastní."
         }
       }
+    },
+    "error": {
+      "invalid_color": "Barva musí být v hex formátu, např. #ff5252"
     }
   },
   "selector": {

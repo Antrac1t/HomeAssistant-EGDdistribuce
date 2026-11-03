@@ -40,8 +40,9 @@ class HdoChartCard extends HTMLElement {
     return /^[a-z]{2,3}$/.test(language) ? language : DEFAULT_LANGUAGE;
   }
 
+  // Returns HTML-escaped text, every caller interpolates it into markup
   _t(key) {
-    return this._translations?.[key] ?? key;
+    return this._escapeHtml(this._translations?.[key] ?? key);
   }
 
   set hass(hass) {
@@ -78,7 +79,7 @@ class HdoChartCard extends HTMLElement {
     const stateObj = hass.states[entityId];
     
     if (!stateObj) {
-      this.content.innerHTML = `<p>Entity ${entityId} not found</p>`;
+      this.content.innerHTML = `<p>Entity ${this._escapeHtml(entityId)} not found</p>`;
       return;
     }
 
@@ -157,8 +158,8 @@ class HdoChartCard extends HTMLElement {
   _renderChart(hdoData, showDays, attributes) {
     const priceVt = parseFloat(attributes.price_vt || 7.0);
     const priceNt = parseFloat(attributes.price_nt || 3.0);
-    const colorVt = attributes.color_vt || '#ff5252';
-    const colorNt = attributes.color_nt || '#2196f3';
+    const colorVt = this._safeColor(attributes.color_vt, '#ff5252');
+    const colorNt = this._safeColor(attributes.color_nt, '#2196f3');
     this._priceUnit = this._escapeHtml(attributes.price_unit || 'Kč/kWh');
     
     const nextChange = attributes.next_change ? new Date(attributes.next_change) : null;
@@ -177,7 +178,7 @@ class HdoChartCard extends HTMLElement {
 
     if (showDays >= 1) {
       const dayLabel = this._t('today');
-      const dateStr = today.toLocaleDateString(this._locale(), { weekday: 'short', day: 'numeric', month: 'short' });
+      const dateStr = this._escapeHtml(today.toLocaleDateString(this._locale(), { weekday: 'short', day: 'numeric', month: 'short' }));
       
       html += `
         <div style="margin-bottom: 24px;">
@@ -194,7 +195,7 @@ class HdoChartCard extends HTMLElement {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       const dayLabel = this._t('tomorrow');
-      const dateStr = tomorrow.toLocaleDateString(this._locale(), { weekday: 'short', day: 'numeric', month: 'short' });
+      const dateStr = this._escapeHtml(tomorrow.toLocaleDateString(this._locale(), { weekday: 'short', day: 'numeric', month: 'short' }));
       
       html += `
         <div style="margin-bottom: 24px;">
@@ -319,7 +320,7 @@ class HdoChartCard extends HTMLElement {
       const label = block.isVt ? this._t('high_tariff_short') : this._t('low_tariff_short');
       const startTime = this._formatHour(block.start);
       const endTime = this._formatHour(block.end);
-      const title = this._escapeHtml(`${label}: ${startTime} - ${endTime} (${block.price} ${this._priceUnit})`);
+      const title = `${label}: ${startTime} - ${endTime} (${this._escapeHtml(block.price)} ${this._priceUnit})`;
 
       html += `
         <div style="
@@ -437,7 +438,7 @@ class HdoChartCard extends HTMLElement {
       const label = block.isVt ? this._t('high_tariff_short') : this._t('low_tariff_short');
       const startTime = this._formatHour(block.start);
       const endTime = this._formatHour(block.end);
-      const title = this._escapeHtml(`${label}: ${startTime} - ${endTime} (${block.price} ${this._priceUnit})`);
+      const title = `${label}: ${startTime} - ${endTime} (${this._escapeHtml(block.price)} ${this._priceUnit})`;
       
       html += `
         <div style="
@@ -505,6 +506,10 @@ class HdoChartCard extends HTMLElement {
     const h = Math.floor(hour);
     const m = Math.round((hour - h) * 60);
     return `${h}:${m.toString().padStart(2, '0')}`;
+  }
+
+  _safeColor(value, fallback) {
+    return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value : fallback;
   }
 
   _escapeHtml(value) {

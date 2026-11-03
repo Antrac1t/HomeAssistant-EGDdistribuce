@@ -63,6 +63,7 @@
     "error": {
       "cannot_connect": "Failed to connect to EGD Distribuce API",
       "invalid_psc": "Postal code not found in EGD database",
+      "invalid_color": "Color must be a hex value, e.g. #ff5252",
       "unknown": "Unexpected error occurred"
     },
     "abort": {
@@ -85,6 +86,9 @@
           "price_unit": "Unit of the HT/NT prices and the Current Price sensor. Defaults to Kč/kWh; a custom value can be entered."
         }
       }
+    },
+    "error": {
+      "invalid_color": "Color must be a hex value, e.g. #ff5252"
     }
   },
   "selector": {
