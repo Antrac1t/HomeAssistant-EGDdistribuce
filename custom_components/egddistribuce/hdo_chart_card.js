@@ -2,7 +2,7 @@
 // <ha-card>, theme CSS variables, scoped shadow DOM, getConfigForm (ha-form editor) and getGridOptions.
 // It builds DOM with textContent/setAttribute only, so no HTML escaping is needed.
 (() => {
-  const CARD_VERSION = '1.1.0';
+  const CARD_VERSION = '1.1.1';
   const TRANSLATIONS_URL = '/egddistribuce_card/hdo_card_translations';
   const DEFAULT_LANGUAGE = 'en';
   const translationCache = new Map();
@@ -241,6 +241,18 @@
       this._syncTimer();
     }
 
+    // Current price sensor on the same device; hass.entities follows registry edits
+    _findPriceEntityId() {
+      const entities = this._hass.entities || {};
+      const deviceId = entities[this._config.entity]?.device_id;
+      const priceEntity = deviceId && Object.values(entities).find((entity) => (
+        entity.device_id === deviceId
+        && entity.platform === 'egddistribuce'
+        && entity.translation_key === 'current_price'
+      ));
+      return priceEntity?.entity_id;
+    }
+
     // Runs one tick at every minute boundary instead of polling; catches up immediately when it resumes
     _syncTimer() {
       clearTimeout(this._timer);
@@ -287,6 +299,16 @@
       }
     }
 
+    // HA formats it like the price sensor: display precision, number format and unit
+    _formatPrice(value) {
+      const priceState = this._hass.states[this._priceEntityId];
+      if (priceState) {
+        return this._hass.formatEntityState(priceState, String(value));
+      }
+      const number = new Intl.NumberFormat('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+      return `${number} ${this._priceUnit}`;
+    }
+
     _language() {
       const language = this._locale().split('-')[0].toLowerCase();
       return /^[a-z]{2,3}$/.test(language) ? language : DEFAULT_LANGUAGE;
@@ -302,10 +324,23 @@
       }
       // HA hands out a new state object only when the entity changed
       const stateObj = this._hass.states[this._config.entity];
-      if (stateObj && stateObj === this._stateObj) {
+      // HA replaces hass.entities and hass.locale only when the registry or user settings changed
+      const { entities, locale } = this._hass;
+      const entitiesChanged = entities !== this._entities;
+      if (entitiesChanged || this._priceSourceEntityId !== this._config.entity) {
+        this._entities = entities;
+        this._priceSourceEntityId = this._config.entity;
+        this._priceEntityId = this._findPriceEntityId();
+      }
+      // Price formatting follows the price sensor state, which may arrive after the registry entry
+      const priceState = this._hass.states[this._priceEntityId];
+      if (stateObj && stateObj === this._stateObj && !entitiesChanged
+        && priceState === this._priceState && locale === this._localeData) {
         return;
       }
       this._stateObj = stateObj;
+      this._priceState = priceState;
+      this._localeData = locale;
       this._render(stateObj);
     }
 
@@ -503,7 +538,7 @@
     _renderBlock(block, id) {
       const label = block.isVt ? this._t('high_tariff_short') : this._t('low_tariff_short');
       const width = ((block.end - block.start) / 24) * 100;
-      const text = `${label}: ${this._formatHour(block.start)} - ${this._formatHour(block.end)} (${block.price} ${this._priceUnit})`;
+      const text = `${label}: ${this._formatHour(block.start)} - ${this._formatHour(block.end)} (${this._formatPrice(block.price)})`;
 
       const el = document.createElement('div');
       el.className = 'block';
@@ -629,8 +664,8 @@
         return el;
       };
 
-      legend.appendChild(item(this._colors.vt, `${this._t('high_tariff_short')} (${priceVt} ${this._priceUnit})`));
-      legend.appendChild(item(this._colors.nt, `${this._t('low_tariff_short')} (${priceNt} ${this._priceUnit})`));
+      legend.appendChild(item(this._colors.vt, `${this._t('high_tariff_short')} (${this._formatPrice(priceVt)})`));
+      legend.appendChild(item(this._colors.nt, `${this._t('low_tariff_short')} (${this._formatPrice(priceNt)})`));
 
       const next = item(null, `${this._t('next_change_in')}: `);
       this._remainingEl = document.createElement('span');
