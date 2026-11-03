@@ -1,8 +1,9 @@
 """The EGD Distribuce integration."""
 from __future__ import annotations
 
+import hashlib
 import logging
-import os
+from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_CORE_CONFIG_UPDATE, Platform
@@ -45,14 +46,16 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the EGD Distribuce component."""
-    # Register custom Lovelace cards and their translations. The integration version is appended as a query
-    # string, so the URL changes with every release and browsers never serve a stale cached card.
+    # Include the card content hash so edits are not hidden by browser caching between releases.
     version = str((await async_get_integration(hass, DOMAIN)).version)
     card_url = "/egddistribuce_card"
+    card_path = hass.config.path(f"custom_components/{DOMAIN}/hdo_chart_card.js")
+    card_content = await hass.async_add_executor_job(Path(card_path).read_bytes)
+    card_hash = hashlib.sha256(card_content).hexdigest()[:12]
     await hass.http.async_register_static_paths([
         StaticPathConfig(
             url_path=f"{card_url}/hdo-chart-card.js",
-            path=hass.config.path(f"custom_components/{DOMAIN}/hdo_chart_card.js"),
+            path=card_path,
             cache_headers=True,
         ),
         StaticPathConfig(
@@ -61,7 +64,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             cache_headers=False,
         ),
     ])
-    add_extra_js_url(hass, f"{card_url}/hdo-chart-card.js?v={version}")
+    add_extra_js_url(hass, f"{card_url}/hdo-chart-card.js?v={card_hash}")
 
     _LOGGER.info("Registered HDO Chart Card at %s (v=%s)", card_url, version)
     
