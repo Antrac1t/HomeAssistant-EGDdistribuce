@@ -62,6 +62,7 @@
     "error": {
       "cannot_connect": "Failed to connect to EGD Distribuce API",
       "invalid_psc": "Postal code not found in EGD database",
+      "invalid_color": "Color must be a hex value, e.g. #ff5252",
       "unknown_code": "The code was not found in the EG.D list. Select a code from the list.",
       "unknown": "Unexpected error occurred"
     },
@@ -92,6 +93,9 @@
           "color_nt": "Low tariff color (NT, hex)"
         }
       }
+    },
+    "error": {
+      "invalid_color": "Color must be a hex value, e.g. #ff5252"
     }
   },
   "selector": {

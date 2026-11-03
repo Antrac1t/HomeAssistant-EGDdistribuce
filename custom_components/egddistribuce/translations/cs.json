@@ -62,6 +62,7 @@
     "error": {
       "cannot_connect": "Nepodařilo se připojit k API EGD Distribuce",
       "invalid_psc": "PSČ nenalezeno v databázi EGD",
+      "invalid_color": "Barva musí být v hex formátu, např. #ff5252",
       "unknown_code": "Kód nebyl v seznamu EG.D nalezen. Vyberte kód ze seznamu.",
       "unknown": "Neočekávaná chyba"
     },
@@ -92,6 +93,9 @@
           "color_nt": "Barva NT (hex)"
         }
       }
+    },
+    "error": {
+      "invalid_color": "Barva musí být v hex formátu, např. #ff5252"
     }
   },
   "selector": {

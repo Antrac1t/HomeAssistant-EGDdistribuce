@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from typing import Any
 
 import voluptuous as vol
@@ -49,6 +50,18 @@ _LOGGER = logging.getLogger(__name__)
 API_REGION_URL = "https://hdo.distribuce24.cz/region"
 API_HDO_URL = "https://hdo.distribuce24.cz/casy"
 
+HEX_COLOR_RE = re.compile(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})")
+
+
+def validate_colors(data: dict[str, Any]) -> dict[str, str]:
+    """Return form errors for color fields that are not hex colors."""
+    return {
+        key: "invalid_color"
+        for key in (CONF_COLOR_VT, CONF_COLOR_NT)
+        if key in data and not HEX_COLOR_RE.fullmatch(str(data[key]))
+    }
+
+
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input."""
     config_type = data.get(CONF_CONFIG_TYPE, CONFIG_TYPE_CLASSIC)
@@ -75,6 +88,8 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
                 if not matching_regions:
                     raise InvalidPSC
 
+    except (CannotConnect, InvalidPSC):
+        raise
     except aiohttp.ClientError as err:
         _LOGGER.error("Error connecting to EGD API: %s", err)
         raise CannotConnect from err
@@ -142,24 +157,26 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             user_input[CONF_CONFIG_TYPE] = CONFIG_TYPE_CLASSIC
-            try:
-                info = await validate_input(self.hass, user_input)
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except InvalidPSC:
-                errors["psc"] = "invalid_psc"
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
-            else:
-                unique_id = (
-                    f"{user_input[CONF_PSC]}_{user_input[CONF_CODE_A]}_"
-                    f"{user_input[CONF_CODE_B]}_{user_input[CONF_CODE_DP]}"
-                )
-                await self.async_set_unique_id(unique_id)
-                self._abort_if_unique_id_configured()
+            errors = validate_colors(user_input)
+            if not errors:
+                try:
+                    info = await validate_input(self.hass, user_input)
+                except CannotConnect:
+                    errors["base"] = "cannot_connect"
+                except InvalidPSC:
+                    errors["psc"] = "invalid_psc"
+                except Exception:
+                    _LOGGER.exception("Unexpected exception")
+                    errors["base"] = "unknown"
+                else:
+                    unique_id = (
+                        f"{user_input[CONF_PSC]}_{user_input[CONF_CODE_A]}_"
+                        f"{user_input[CONF_CODE_B]}_{user_input[CONF_CODE_DP]}"
+                    )
+                    await self.async_set_unique_id(unique_id)
+                    self._abort_if_unique_id_configured()
 
-                return self.async_create_entry(title=info["title"], data=user_input)
+                    return self.async_create_entry(title=info["title"], data=user_input)
 
         code_a_options = {str(i): str(i) for i in range(1, 10)}
         code_b_options = {str(i): str(i) for i in range(1, 10)}
@@ -190,21 +207,23 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             user_input[CONF_CONFIG_TYPE] = CONFIG_TYPE_HDO_CODES
-            try:
-                info = await validate_input(self.hass, user_input)
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except InvalidPSC:
-                errors["psc"] = "invalid_psc"
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
-            else:
-                unique_id = f"{user_input[CONF_PSC]}_{user_input[CONF_HDO_CODE]}"
-                await self.async_set_unique_id(unique_id)
-                self._abort_if_unique_id_configured()
+            errors = validate_colors(user_input)
+            if not errors:
+                try:
+                    info = await validate_input(self.hass, user_input)
+                except CannotConnect:
+                    errors["base"] = "cannot_connect"
+                except InvalidPSC:
+                    errors["psc"] = "invalid_psc"
+                except Exception:
+                    _LOGGER.exception("Unexpected exception")
+                    errors["base"] = "unknown"
+                else:
+                    unique_id = f"{user_input[CONF_PSC]}_{user_input[CONF_HDO_CODE]}"
+                    await self.async_set_unique_id(unique_id)
+                    self._abort_if_unique_id_configured()
 
-                return self.async_create_entry(title=info["title"], data=user_input)
+                    return self.async_create_entry(title=info["title"], data=user_input)
 
         return self.async_show_form(
             step_id="hdo_codes",
@@ -282,9 +301,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Relay schedule (only for codes that have several) and price/colour settings."""
+        errors: dict[str, str] = {}
         if user_input is not None:
-            self._smart_input.update(user_input)
-            return await self._async_create_smart_entry()
+            errors = validate_colors(user_input)
+            if not errors:
+                self._smart_input.update(user_input)
+                return await self._async_create_smart_entry()
 
         fields: dict[Any, Any] = {}
         if len(self._schedule_labels) > 1:
@@ -310,6 +332,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="smart_settings",
             data_schema=vol.Schema(fields),
+            errors=errors,
             description_placeholders={
                 "code": self._smart_input[CONF_HDO_CODE],
                 "currency": self.hass.config.currency,
@@ -351,9 +374,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
+        errors: dict[str, str] = {}
 
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            errors = validate_colors(user_input)
+            if not errors:
+                return self.async_create_entry(title="", data=user_input)
 
         current_price_vt = self._config_entry.options.get(
             CONF_PRICE_VT, self._config_entry.data.get(CONF_PRICE_VT, DEFAULT_PRICE_VT)
@@ -377,6 +403,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     vol.Optional(CONF_COLOR_NT, default=current_color_nt): cv.string,
                 }
             ),
+            errors=errors,
             description_placeholders={"currency": self.hass.config.currency},
         )
 
