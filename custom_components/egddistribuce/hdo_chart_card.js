@@ -669,8 +669,7 @@
     // Moves the current-time marker and the countdown without re-rendering
     _tick() {
       if (this._nowMarker) {
-        const now = new Date();
-        const hour = now.getHours() + now.getMinutes() / 60;
+        const hour = this._nowHours();
         const percent = (hour / 24) * 100;
         this._nowMarker.style.left = `${percent}%`;
         // Keeps the label inside the card near the edges
@@ -680,6 +679,28 @@
       if (this._remainingEl) {
         this._remainingEl.textContent = this._formatRemaining(this._nextChange);
       }
+    }
+
+    // Current wall-clock time of the HA installation, the same clock the bars use
+    _nowHours() {
+      const now = new Date();
+      const timeZone = this._hass?.config?.time_zone;
+      if (timeZone) {
+        try {
+          const parts = new Intl.DateTimeFormat('en-GB', {
+            timeZone, hour: 'numeric', minute: 'numeric', hourCycle: 'h23',
+          }).formatToParts(now);
+          const value = (type) => Number(parts.find((part) => part.type === type)?.value);
+          const hour = value('hour');
+          const minute = value('minute');
+          if (!isNaN(hour) && !isNaN(minute)) {
+            return hour + minute / 60;
+          }
+        } catch (err) {
+          // Unknown time zone: fall back to the browser clock
+        }
+      }
+      return now.getHours() + now.getMinutes() / 60;
     }
 
     _formatHour(hour) {
