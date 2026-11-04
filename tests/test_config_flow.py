@@ -99,6 +99,22 @@ class SmartFlowTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(result["description_placeholders"]["currency"], "CZK")
 
+    async def test_options_prefill_current_values(self):
+        options_flow = config_flow.OptionsFlowHandler(
+            SimpleNamespace(
+                data={config_flow.CONF_PRICE_VT: 4.0, config_flow.CONF_COLOR_NT: "#000"},
+                options={config_flow.CONF_PRICE_VT: 5.0},
+            )
+        )
+        options_flow.hass = SimpleNamespace(config=SimpleNamespace(currency="CZK"))
+
+        result = await options_flow.async_step_init()
+        defaults = result["data_schema"]({})
+
+        self.assertEqual(defaults[config_flow.CONF_PRICE_VT], 5.0)
+        self.assertEqual(defaults[config_flow.CONF_PRICE_NT], config_flow.DEFAULT_PRICE_NT)
+        self.assertEqual(defaults[config_flow.CONF_COLOR_NT], "#000")
+
     async def test_unknown_typed_code_shows_error_and_keeps_text(self):
         flow = self.make_flow()
         get_json, session = self.patch_download(return_value=(DATA, False))
@@ -185,6 +201,63 @@ class SmartFlowTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(result["type"], "create_entry")
         flow.async_set_unique_id.assert_awaited_with(f"smart_ACd4510_{TUV}")
+
+
+
+REGIONS = [{"PSC": "58851", "Region": "ZAPAD"}]
+CLASSIC_INPUT = {
+    config_flow.CONF_PSC: "58851",
+    config_flow.CONF_CODE_A: "1",
+    config_flow.CONF_CODE_B: "8",
+    config_flow.CONF_CODE_DP: "06",
+}
+
+
+class PscFlowTests(unittest.IsolatedAsyncioTestCase):
+    make_flow = SmartFlowTests.make_flow
+    patch_download = SmartFlowTests.patch_download
+
+    async def test_valid_psc_creates_entry_and_uses_region_cache(self):
+        flow = self.make_flow()
+        get_json, session = self.patch_download(return_value=(REGIONS, False))
+        with get_json as mocked, session:
+            result = await flow.async_step_classic(dict(CLASSIC_INPUT))
+
+        self.assertEqual(result["type"], "create_entry")
+        self.assertEqual(result["title"], "EGD HDO 58851 A1B8P06")
+        flow.async_set_unique_id.assert_awaited_with("58851_1_8_06")
+        self.assertEqual(mocked.call_args.kwargs["file"], "region")
+        self.assertFalse(mocked.call_args.kwargs["use_cache_on_error"])
+
+    async def test_unknown_psc_shows_field_error(self):
+        flow = self.make_flow()
+        get_json, session = self.patch_download(return_value=(REGIONS, False))
+        with get_json, session:
+            result = await flow.async_step_hdo_codes(
+                {config_flow.CONF_PSC: "11111", config_flow.CONF_HDO_CODE: "405"}
+            )
+
+        self.assertEqual(result["type"], "form")
+        self.assertEqual(result["errors"], {config_flow.CONF_PSC: "invalid_psc"})
+
+    async def test_download_failure_shows_cannot_connect(self):
+        flow = self.make_flow()
+        get_json, session = self.patch_download(side_effect=RuntimeError("down"))
+        with get_json, session:
+            result = await flow.async_step_classic(dict(CLASSIC_INPUT))
+
+        self.assertEqual(result["errors"], {"base": "cannot_connect"})
+
+    async def test_hdo_codes_title(self):
+        flow = self.make_flow()
+        get_json, session = self.patch_download(return_value=(REGIONS, False))
+        with get_json, session:
+            result = await flow.async_step_hdo_codes(
+                {config_flow.CONF_PSC: "58851", config_flow.CONF_HDO_CODE: "405,406"}
+            )
+
+        self.assertEqual(result["title"], "EGD HDO 58851 (405,406)")
+        flow.async_set_unique_id.assert_awaited_with("58851_405,406")
 
 
 if __name__ == "__main__":
