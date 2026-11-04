@@ -238,50 +238,52 @@ class DownloadTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse((self.dir / "hdo.json").exists())
         self.assert_no_temp_files()
 
-    async def test_concurrent_downloads_serialize_cache_updates(self):
-        activity = {"active": 0, "maximum": 0}
-        session = FakeSession(
-            FakeResponse(200, ["old"], {"ETag": 'W/"a"'}, delay=0.03, activity=activity),
-            FakeResponse(200, ["new"], {"ETag": 'W/"b"'}, activity=activity),
-        )
+    async def test_concurrent_callers_share_one_download(self):
+        await self.fetch(FakeSession(FakeResponse(200, ["old"], {"ETag": 'W/"a"'})))
+        # A stalled API: every caller must get the result of the single request
+        session = FakeSession(FakeResponse(200, ["new"], {"ETag": 'W/"b"'}, delay=0.05))
 
-        old_result, new_result = await asyncio.gather(
-            self.fetch(session),
-            self.fetch(session),
-        )
+        results = await asyncio.gather(*(self.fetch(session) for _ in range(5)))
 
-        self.assertEqual(old_result, (["old"], False))
-        self.assertEqual(new_result, (["new"], False))
-        self.assertEqual(activity["maximum"], 1)
+        self.assertEqual(results, [(["new"], False)] * 5)
+        self.assertEqual(session.requests, [{"If-None-Match": 'W/"a"'}])
         self.assertEqual(self.cache(), {"version": 1, "etag": 'W/"b"', "data": ["new"]})
 
-    async def test_cancelled_cache_write_holds_lock_until_executor_finishes(self):
-        self.hass = BlockingWriteHass(self._tmp.name)
-        first = asyncio.create_task(
-            self.fetch(FakeSession(FakeResponse(200, ["first"], {"ETag": 'W/"a"'})))
+    async def test_shared_failure_respects_each_callers_cache_fallback(self):
+        await self.fetch(FakeSession(FakeResponse(200, [1], {"ETag": 'W/"a"'})))
+        session = FakeSession(aiohttp.ClientError("down"))
+
+        with_cache, without_cache = await asyncio.gather(
+            self.fetch(session),
+            self.fetch(session, use_cache_on_error=False),
+            return_exceptions=True,
         )
+
+        self.assertEqual(with_cache, ([1], True))
+        self.assertIsInstance(without_cache, UpdateFailed)
+        self.assertEqual(len(session.requests), 1)
+
+    async def test_cancelled_caller_does_not_stop_the_download(self):
+        self.hass = BlockingWriteHass(self._tmp.name)
+        session = FakeSession(FakeResponse(200, ["first"], {"ETag": 'W/"a"'}))
+        first = asyncio.create_task(self.fetch(session))
         try:
             started = await asyncio.to_thread(self.hass.write_started.wait, 1)
             self.assertTrue(started)
 
             first.cancel()
-            second_session = FakeSession(FakeResponse(200, ["second"], {"ETag": 'W/"b"'}))
-            second = asyncio.create_task(self.fetch(second_session))
-            await asyncio.sleep(0)
-
-            # The cancelled download keeps the lock while its write is running
-            self.assertFalse(first.done())
-            self.assertEqual(second_session.requests, [])
-
-            self.hass.release_write.set()
             with self.assertRaises(asyncio.CancelledError):
                 await first
-            self.assertEqual(await second, (["second"], False))
+            # A caller arriving during the write joins the running download
+            second = asyncio.create_task(self.fetch(session))
+            await asyncio.sleep(0)
+            self.hass.release_write.set()
+            self.assertEqual(await second, (["first"], False))
         finally:
             self.hass.release_write.set()
 
-        self.assertEqual(second_session.requests, [{"If-None-Match": 'W/"a"'}])
-        self.assertEqual(self.cache(), {"version": 1, "etag": 'W/"b"', "data": ["second"]})
+        self.assertEqual(len(session.requests), 1)
+        self.assertEqual(self.cache(), {"version": 1, "etag": 'W/"a"', "data": ["first"]})
         self.assert_no_temp_files()
 
 if __name__ == "__main__":

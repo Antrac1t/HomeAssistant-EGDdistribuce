@@ -11,7 +11,8 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
-_CACHE_LOCKS: dict[Path, asyncio.Lock] = {}
+# Probíhající stahování podle souboru cache; souběžní volající sdílí jeden požadavek
+_IN_FLIGHT: dict[Path, asyncio.Future] = {}
 
 # Formát souboru cache: {"version": CACHE_VERSION, "etag": str | None, "data": ...}
 CACHE_VERSION = 1
@@ -36,13 +37,39 @@ async def get_json(
     Data se ukládají spolu s ETagem do .storage/<DOMAIN>/<file>.json.
     Pokud server potvrdí, že se data nezměnila (304), použije se cache.
     Při chybě vrátí poslední uložená data (pokud use_cache_on_error).
-    """
 
-    cache_dir = _cache_dir(hass)
-    cache_file = cache_dir / f"{file}.json"
+    Souběžná volání pro stejný soubor sdílí jedno stahování, takže na sebe
+    nečekají déle než jeden požadavek. Zrušení volajícího stahování nepřeruší.
+    """
+    cache_file = _cache_dir(hass) / f"{file}.json"
+    task = _IN_FLIGHT.get(cache_file)
+    if task is None:
+        task = asyncio.ensure_future(_download(hass, session, url, cache_file))
+        _IN_FLIGHT[cache_file] = task
+
+        def _done(finished: asyncio.Future) -> None:
+            if _IN_FLIGHT.get(cache_file) is finished:
+                del _IN_FLIGHT[cache_file]
+            if not finished.cancelled():
+                finished.exception()  # chybu dostanou volající; jinak by asyncio varovalo
+
+        task.add_done_callback(_done)
+
+    data, error = await asyncio.shield(task)
+    if error is not None:
+        if not use_cache_on_error:
+            raise UpdateFailed(f"Download selhal: {url}") from error
+        return data, True
+    return data, False
+
+
+async def _download(
+    hass, session: aiohttp.ClientSession, url: str, cache_file: Path
+) -> tuple[Any, Exception | None]:
+    """Stáhnout soubor; vrací (data, None), nebo (data z cache, chyba) při selhání."""
+    cache_dir = cache_file.parent
     # ETag se dřív ukládal do samostatného souboru
-    legacy_etag_file = cache_dir / f"{file}.json.etag"
-    cache_lock = _CACHE_LOCKS.setdefault(cache_file, asyncio.Lock())
+    legacy_etag_file = cache_dir / f"{cache_file.name}.etag"
 
     def _write_cache(data: Any, etag: str | None) -> None:
         cache_dir.mkdir(parents=True, exist_ok=True)
@@ -51,7 +78,7 @@ async def get_json(
             ensure_ascii=False,
             separators=(",", ":"),
         )
-        # Unikátní dočasný soubor - souběžné zápisy si ho nepřepíšou
+        # Unikátní dočasný soubor - rozpracovaný zápis nikdy není vidět
         fd, tmp = tempfile.mkstemp(
             dir=cache_dir, prefix=f"{cache_file.name}.", suffix=".tmp"
         )
@@ -80,23 +107,6 @@ async def get_json(
 
     not_modified = object()
 
-    async def _write_and_hold_lock(data: Any, etag: str | None) -> None:
-        """Zapsat cache; při zrušení počkat na executor, aby starší zápis nepřepsal novější."""
-        write = asyncio.ensure_future(
-            hass.async_add_executor_job(_write_cache, data, etag)
-        )
-        try:
-            await asyncio.shield(write)
-        except asyncio.CancelledError:
-            while not write.done():
-                try:
-                    await asyncio.wait({write})
-                except asyncio.CancelledError:
-                    continue
-            if not write.cancelled() and (err := write.exception()) is not None:
-                _LOGGER.warning("Nelze uložit cache %s: %s", cache_file, err)
-            raise
-
     async def _request(headers: dict[str, str]):
         async with session.get(url, headers=headers, timeout=REQUEST_TIMEOUT) as response:
             if response.status == 304:
@@ -104,42 +114,35 @@ async def get_json(
             response.raise_for_status()
             return await response.json(), response.headers.get("ETag")
 
-    async with cache_lock:
-        cached = None
+    cached = None
+    try:
         try:
-            try:
-                cached = await hass.async_add_executor_job(_read_cache)
-            except (OSError, ValueError) as err:
-                _LOGGER.debug("Cache %s nelze použít: %s", cache_file, err)
-            etag = cached[1] if cached else None
+            cached = await hass.async_add_executor_job(_read_cache)
+        except (OSError, ValueError) as err:
+            _LOGGER.debug("Cache %s nelze použít: %s", cache_file, err)
+        etag = cached[1] if cached else None
 
-            data, new_etag = await _request(
-                {"If-None-Match": etag} if etag else {}
-            )
+        data, new_etag = await _request({"If-None-Match": etag} if etag else {})
 
-            if data is not_modified:
-                if cached is None:
-                    raise UpdateFailed(f"Server vrátil 304 bez platné cache: {url}")
-                return cached[0], False
-
-            try:
-                await _write_and_hold_lock(data, new_etag)
-            except OSError as werr:
-                # Stažená data jsou platná, jen se nepodařilo uložit cache
-                _LOGGER.warning("Nelze uložit cache %s: %s", cache_file, werr)
-            else:
-                _LOGGER.debug(
-                    "Uloženo %s (ETag: %s)",
-                    cache_file,
-                    new_etag or "server neposlal",
-                )
-            return data, False
-
-        except Exception as err:
-            if not use_cache_on_error:
-                raise UpdateFailed(f"Download selhal: {url}") from err
+        if data is not_modified:
             if cached is None:
-                raise UpdateFailed(
-                    f"Download selhal a platná cache neexistuje: {url}"
-                ) from err
-            return cached[0], True
+                raise UpdateFailed(f"Server vrátil 304 bez platné cache: {url}")
+            return cached[0], None
+
+        try:
+            await hass.async_add_executor_job(_write_cache, data, new_etag)
+        except OSError as werr:
+            # Stažená data jsou platná, jen se nepodařilo uložit cache
+            _LOGGER.warning("Nelze uložit cache %s: %s", cache_file, werr)
+        else:
+            _LOGGER.debug(
+                "Uloženo %s (ETag: %s)", cache_file, new_etag or "server neposlal"
+            )
+        return data, None
+
+    except Exception as err:
+        if cached is None:
+            raise UpdateFailed(
+                f"Download selhal a platná cache neexistuje: {url}"
+            ) from err
+        return cached[0], err
