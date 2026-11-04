@@ -1,38 +1,18 @@
 """The EGD Distribuce integration."""
 from __future__ import annotations
 
+import hashlib
 import logging
-import os
+from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import config_validation as cv
+from homeassistant.const import EVENT_CORE_CONFIG_UPDATE, Platform
+from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.helpers import config_validation as cv, issue_registry as ir
 from homeassistant.components.http import StaticPathConfig
+from homeassistant.components.frontend import add_extra_js_url
 
-from .const import (
-    DOMAIN,
-    CONF_PSC,
-    CONF_CODE_A,
-    CONF_CODE_B,
-    CONF_CODE_DP,
-    CONF_HDO_CODE,
-    CONF_PRICE_NT,
-    CONF_PRICE_VT,
-    CONF_CONFIG_TYPE,
-    CONF_COLOR_VT,
-    CONF_COLOR_NT,
-    CONF_PRICE_UNIT,
-    CONFIG_TYPE_CLASSIC,
-    CONFIG_TYPE_HDO_CODES,
-    CONFIG_TYPE_SMART,
-    DEFAULT_PRICE_NT,
-    DEFAULT_PRICE_VT,
-    DEFAULT_COLOR_VT,
-    DEFAULT_COLOR_NT,
-    DEFAULT_PRICE_UNIT,
-)
+from .const import DOMAIN
 from .coordinator import EGDDistribuceCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,76 +24,35 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the EGD Distribuce component."""
-    # Register custom Lovelace card and its translations
+    # Include the card content hash so edits are not hidden by browser caching between releases.
+    card_url = "/egddistribuce_card"
+    card_path = hass.config.path(f"custom_components/{DOMAIN}/hdo_chart_card.js")
+    card_content = await hass.async_add_executor_job(Path(card_path).read_bytes)
+    card_hash = hashlib.sha256(card_content).hexdigest()[:12]
     await hass.http.async_register_static_paths([
         StaticPathConfig(
-            url_path="/egddistribuce_card/hdo-chart-card.js",
-            path=hass.config.path(f"custom_components/{DOMAIN}/hdo_chart_card.js"),
+            url_path=f"{card_url}/hdo-chart-card.js",
+            path=card_path,
             cache_headers=True,
         ),
         StaticPathConfig(
-            url_path="/egddistribuce_card/hdo_card_translations",
+            url_path=f"{card_url}/hdo_card_translations",
             path=hass.config.path(f"custom_components/{DOMAIN}/hdo_card_translations"),
             cache_headers=False,
         ),
     ])
-    
-    _LOGGER.info("Registered HDO Chart Card at /egddistribuce_card/hdo-chart-card.js")
+    add_extra_js_url(hass, f"{card_url}/hdo-chart-card.js?v={card_hash}")
+
+    _LOGGER.debug("Registered HDO Chart Card at %s (v=%s)", card_url, card_hash)
     
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up EGD Distribuce from a config entry."""
-    hass.data.setdefault(DOMAIN, {})
-
-    # Get configuration type
-    config_type = entry.data.get(CONF_CONFIG_TYPE, CONFIG_TYPE_CLASSIC)
-    
-    # Get common config
-    price_nt = entry.options.get(
-        CONF_PRICE_NT,
-        entry.data.get(CONF_PRICE_NT, DEFAULT_PRICE_NT)
-    )
-    price_vt = entry.options.get(
-        CONF_PRICE_VT,
-        entry.data.get(CONF_PRICE_VT, DEFAULT_PRICE_VT)
-    )
-    color_vt = entry.options.get(
-        CONF_COLOR_VT,
-        entry.data.get(CONF_COLOR_VT, DEFAULT_COLOR_VT)
-    )
-    color_nt = entry.options.get(
-        CONF_COLOR_NT,
-        entry.data.get(CONF_COLOR_NT, DEFAULT_COLOR_NT)
-    )
-    price_unit = entry.options.get(
-        CONF_PRICE_UNIT,
-        entry.data.get(CONF_PRICE_UNIT, DEFAULT_PRICE_UNIT)
-    )
-
-    # Get type-specific config
-    psc = entry.data.get(CONF_PSC)
-    code_a = entry.data.get(CONF_CODE_A)
-    code_b = entry.data.get(CONF_CODE_B)
-    code_dp = entry.data.get(CONF_CODE_DP)
-    hdo_code = entry.data.get(CONF_HDO_CODE)
-
-    # Create coordinator
-    coordinator = EGDDistribuceCoordinator(
-        hass,
-        config_type=config_type,
-        psc=psc,
-        code_a=code_a,
-        code_b=code_b,
-        code_dp=code_dp,
-        hdo_code=hdo_code,
-        price_nt=float(price_nt),
-        price_vt=float(price_vt),
-        color_vt=str(color_vt),
-        color_nt=str(color_nt),
-        price_unit=str(price_unit),
-    )
+    # Currency is part of the price unit; a change triggers a reload below
+    currency = hass.config.currency
+    coordinator = EGDDistribuceCoordinator(hass, entry)
 
     # Cancel the coordinator's own timers on unload/reload
     entry.async_on_unload(coordinator.async_shutdown)
@@ -121,24 +60,38 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Fetch initial data
     await coordinator.async_config_entry_first_refresh()
 
-    # Store coordinator
-    hass.data[DOMAIN][entry.entry_id] = coordinator
+    entry.runtime_data = coordinator
 
     # Setup platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Setup options update listener
+    # Reload on options change and on Home Assistant currency change
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+
+    @callback
+    def _async_core_config_updated(_event: Event) -> None:
+        nonlocal currency
+        if hass.config.currency == currency:
+            return
+        # Remember the new currency so repeated events do not reload again
+        currency = hass.config.currency
+        hass.config_entries.async_schedule_reload(entry.entry_id)
+
+    entry.async_on_unload(
+        hass.bus.async_listen(EVENT_CORE_CONFIG_UPDATE, _async_core_config_updated)
+    )
 
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        hass.data[DOMAIN].pop(entry.entry_id)
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
-    return unload_ok
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove the repair issue that belongs to a deleted config entry."""
+    ir.async_delete_issue(hass, DOMAIN, f"smart_schedule_{entry.entry_id}")
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:

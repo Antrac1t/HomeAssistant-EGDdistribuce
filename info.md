@@ -57,6 +57,6 @@ template:
         state: "{{ state_attr('binary_sensor.hdo', 'current_price')}}"
 ```
 
-`price_vt` and `price_nt` are prices of VT/NT according to your tariff, per 1 kWh to get current distribution price. No VAT calculation is performed, you get one of the prices you set, depending on HDO state.
+`price_vt` and `price_nt` are prices of VT/NT according to your tariff, in the Home Assistant system currency per 1 kWh, to get current distribution price. No VAT calculation is performed, you get one of the prices you set, depending on HDO state.
 
 Home Assistant needs to be restarted after modifying the configuration.

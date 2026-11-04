@@ -4,11 +4,11 @@
   "categories": ["energy.energy_prices", "local_services"],
   "codeowners": ["@Antrac1t", "@panther7"],
   "config_flow": true,
-  "dependencies": ["http"],
+  "dependencies": ["frontend", "http"],
   "documentation": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Antrac1t/HomeAssistant-EGDdistribuce/issues",
   "quality_scale": "custom",
   "requirements": ["holidays"],
-  "version": "v0.8.1"
+  "version": "v0.9.0-beta.7"
 }

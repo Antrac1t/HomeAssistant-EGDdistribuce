@@ -1,0 +1,31 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "hdo_status": {
+        "default": "mdi:transmission-tower-off",
+        "state": {
+          "on": "mdi:transmission-tower"
+        }
+      },
+      "hdo_times_change": {
+        "default": "mdi:calendar-clock"
+      }
+    },
+    "button": {
+      "refresh_api": {
+        "default": "mdi:cloud-refresh"
+      }
+    },
+    "sensor": {
+      "current_price": {
+        "default": "mdi:cash"
+      },
+      "next_hdo_change": {
+        "default": "mdi:clock-end"
+      },
+      "next_change": {
+        "default": "mdi:clock-time-four-outline"
+      }
+    }
+  }
+}
