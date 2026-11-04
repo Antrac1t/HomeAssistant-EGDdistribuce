@@ -11,16 +11,14 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CURRENCY_EURO
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import EGDDistribuceCoordinator
-from .entity import EGDBaseEntity, suggest_entity_id
+from .entity import EGDBaseEntity, format_slot
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,7 +51,8 @@ async def async_setup_entry(
 class EGDDistribuceCurrentPriceSensor(EGDBaseEntity, SensorEntity):
     """Sensor for current electricity price."""
 
-    _attr_has_entity_name = True
+    _platform = "sensor"
+    _attr_translation_key = "current_price"
     # Price per kWh is not a monetary amount (HA requires an ISO 4217 unit and
     # state_class TOTAL for MONETARY), so keep no device class to allow
     # MEASUREMENT long-term statistics.
@@ -67,20 +66,8 @@ class EGDDistribuceCurrentPriceSensor(EGDBaseEntity, SensorEntity):
         entry: ConfigEntry,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator)
-        
-        self._attr_unique_id = f"{entry.entry_id}_current_price"
-        self._attr_translation_key = "current_price"
-        self.entity_id = suggest_entity_id("sensor", "current_price", entry)
+        super().__init__(coordinator, entry)
         self._attr_native_unit_of_measurement = coordinator.price_unit
-        
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": entry.title,
-            "manufacturer": "EGD Distribuce",
-            "model": "HDO",
-            "entry_type": "service",
-        }
 
     @property
     def native_value(self) -> float | None:
@@ -111,29 +98,10 @@ class EGDDistribuceCurrentPriceSensor(EGDBaseEntity, SensorEntity):
 class EGDDistribuceNextChangeTimeSensor(EGDBaseEntity, SensorEntity):
     """Timestamp of the next HDO status change (relative time is rendered by the frontend)."""
 
-    _attr_has_entity_name = True
+    _platform = "sensor"
+    _attr_translation_key = "next_hdo_change"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_icon = "mdi:clock-end"
-
-    def __init__(
-        self,
-        coordinator: EGDDistribuceCoordinator,
-        entry: ConfigEntry,
-    ) -> None:
-        """Initialize the sensor."""
-        super().__init__(coordinator)
-
-        self._attr_unique_id = f"{entry.entry_id}_next_hdo_change"
-        self._attr_translation_key = "next_hdo_change"
-        self.entity_id = suggest_entity_id("sensor", "next_hdo_change", entry)
-
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": entry.title,
-            "manufacturer": "EGD Distribuce",
-            "model": "HDO",
-            "entry_type": "service",
-        }
 
     @property
     def native_value(self) -> datetime | None:
@@ -159,28 +127,9 @@ class EGDDistribuceNextChangeTimeSensor(EGDBaseEntity, SensorEntity):
 class EGDDistribuceNextChangeSensor(EGDBaseEntity, SensorEntity):
     """Sensor for next HDO time slot."""
 
-    _attr_has_entity_name = True
+    _platform = "sensor"
+    _attr_translation_key = "next_change"
     _attr_icon = "mdi:clock-time-four-outline"
-
-    def __init__(
-        self,
-        coordinator: EGDDistribuceCoordinator,
-        entry: ConfigEntry,
-    ) -> None:
-        """Initialize the sensor."""
-        super().__init__(coordinator)
-        
-        self._attr_unique_id = f"{entry.entry_id}_next_change"
-        self._attr_translation_key = "next_change"
-        self.entity_id = suggest_entity_id("sensor", "next_change", entry)
-        
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": entry.title,
-            "manufacturer": "EGD Distribuce",
-            "model": "HDO",
-            "entry_type": "service",
-        }
 
     @property
     def native_value(self) -> str | None:
@@ -212,18 +161,10 @@ class EGDDistribuceNextChangeSensor(EGDBaseEntity, SensorEntity):
         hdo_times_today = self.coordinator.data.get("hdo_times_today", [])
         hdo_times_tomorrow = self.coordinator.data.get("hdo_times_tomorrow", [])
         
-        # Format all times
-        def format_times(times: list, prefix: str = "") -> list[str]:
-            """Format time slots."""
-            formatted = []
-            for slot in times:
-                start = slot['od'].replace(':00', '')
-                end = slot['do'].replace(':00', '')
-                formatted.append(f"{prefix}{start} - {end}")
-            return formatted
-        
-        all_times_today = format_times(hdo_times_today)
-        all_times_tomorrow = format_times(hdo_times_tomorrow, "Zítra ")
+        all_times_today = [format_slot(slot, " - ") for slot in hdo_times_today]
+        all_times_tomorrow = [
+            f"Zítra {format_slot(slot, ' - ')}" for slot in hdo_times_tomorrow
+        ]
         
         return {
             "all_times_today": all_times_today,

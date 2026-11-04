@@ -6,9 +6,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
 from .coordinator import EGDDistribuceCoordinator
-from .entity import suggest_entity_id
+from .entity import device_info, suggest_entity_id
 
 
 async def async_setup_entry(
@@ -37,13 +36,7 @@ class EGDDistribuceRefreshButton(ButtonEntity):
         self._coordinator = coordinator
         self._attr_unique_id = f"{entry.entry_id}_refresh_api"
         self.entity_id = suggest_entity_id("button", "refresh_api", entry)
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": entry.title,
-            "manufacturer": "EGD Distribuce",
-            "model": "HDO",
-            "entry_type": "service",
-        }
+        self._attr_device_info = device_info(entry)
 
     async def async_press(self) -> None:
         """Download fresh data from the API."""
