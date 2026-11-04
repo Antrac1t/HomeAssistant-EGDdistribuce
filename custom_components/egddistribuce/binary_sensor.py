@@ -76,6 +76,7 @@ class EGDDistribuceBinarySensor(EGDBaseEntity, BinarySensorEntity):
             "next_change": next_change.isoformat() if next_change else None,
             "current_price": self.coordinator.data.get("current_price", 0),
             "region": self.coordinator.data.get("region", "N/A"),
+            "date_today": self.coordinator.data.get("date_today"),
             "price_vt": self.coordinator.price_vt,
             "price_nt": self.coordinator.price_nt,
             "price_unit": self.coordinator.price_unit,

@@ -388,6 +388,8 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             "current_price": current_price,
             "next_change": next_change,
             "region": region,
+            # HA local date the schedule was computed for (today/tomorrow refer to it)
+            "date_today": date_now.isoformat(),
             "HDO_HOURLY": HDO_HOURLY,
         }
 

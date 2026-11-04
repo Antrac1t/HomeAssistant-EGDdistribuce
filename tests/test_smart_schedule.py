@@ -137,6 +137,7 @@ class SmartScheduleTests(unittest.TestCase):
         with patch.object(coordinator_module.dt_util, "DEFAULT_TIME_ZONE", timezone.utc):
             data = self.coordinator._parse_times([overnight], datetime(2026, 10, 23, 12))
 
+        self.assertEqual(data["date_today"], "2026-10-23")
         hourly = data["HDO_HOURLY"]
         self.assertEqual(hourly[datetime(2026, 10, 23, 1, 0)], 1.5)
         self.assertEqual(hourly[datetime(2026, 10, 23, 2, 0)], 2.5)
