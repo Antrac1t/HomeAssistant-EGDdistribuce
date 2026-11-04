@@ -158,15 +158,13 @@ show_days: 2
 show_header: false
 ```
 
-Card texts are translated according to the Home Assistant language. Translations are located in `custom_components/egddistribuce/hdo_card_translations/<language>.json` (currently `cs` and `en`, other languages fall back to English). To add a new language, just add another file.
-
 ---
 
 ## Examples
 
 ### Graph with other entities
 
-You can show HDO in a graph with other entities, for example spot prices from Czech Energy Spot Prices (https://github.com/rnovacek/homeassistant_cz_energy_spot_prices):
+You can show HDO in a graph with other entities, for example spot prices from [Czech Energy Spot Prices](https://github.com/rnovacek/homeassistant_cz_energy_spot_prices):
 
 ![Electricity prices graph](./docs/graph.png)
 

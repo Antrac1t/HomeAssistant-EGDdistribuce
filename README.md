@@ -160,15 +160,13 @@ show_days: 2
 show_header: false
 ```
 
-Texty karty se překládají podle jazyka Home Assistantu. Překlady jsou v `custom_components/egddistribuce/hdo_card_translations/<jazyk>.json` (zatím `cs` a `en`, ostatní jazyky použijí angličtinu). Nový jazyk stačí přidat jako další soubor.
-
 ---
 
 ## Příklady
 
 ### Graf s dalšími entitami
 
-HDO lze zobrazit v grafu spolu s dalšími entitami, například se spotovými cenami z integrace Czech Energy Spot Prices (https://github.com/rnovacek/homeassistant_cz_energy_spot_prices):
+HDO lze zobrazit v grafu spolu s dalšími entitami, například se spotovými cenami z integrace [Czech Energy Spot Prices](https://github.com/rnovacek/homeassistant_cz_energy_spot_prices):
 
 ![Graf cen elektřiny](./docs/graph.png)
 
