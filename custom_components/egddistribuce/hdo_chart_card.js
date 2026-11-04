@@ -142,12 +142,12 @@
     constructor() {
       super();
       this.attachShadow({ mode: 'open' });
+      // Tooltip sources; the shown block is hovered ?? focused ?? pinned (see _activeId)
       this._pinned = null;
-      this._blocks = new Map();
-      this._focusedId = null;
-      this._hoveredBlockId = null;
-      this._tipHovered = false;
+      this._hovered = null;
+      this._focused = null;
       this._hoverTimer = null;
+      this._blocks = new Map();
     }
 
     setConfig(config) {
@@ -155,8 +155,7 @@
         throw new Error('You need to define an entity');
       }
       this._config = config;
-      this._stateObj = undefined;
-      this._update();
+      this._update(true);
     }
 
     set hass(hass) {
@@ -169,8 +168,7 @@
         loadTranslations(language).then((translations) => {
           if (this._translationsLanguage === language) {
             this._translations = translations;
-            this._stateObj = undefined;
-            this._update();
+            this._update(true);
           }
         });
       }
@@ -203,19 +201,19 @@
       };
       // Also dismisses tooltips shown by hover or keyboard focus, which are never pinned
       this._onEscape = (event) => {
-        if (event.key === 'Escape' && (this._pinned || this._shownId)) {
+        if (event.key === 'Escape' && this._activeId()) {
           this._pinned = null;
-          this._focusedId = null;
-          this._hoveredBlockId = null;
-          this._tipHovered = false;
+          this._focused = null;
+          this._hovered = null;
           this._clearHoverTimer();
           this._restoreTip();
         }
       };
       // Keeps a visible tooltip inside the card after rotation or dashboard resizing
       this._resizeObserver = new ResizeObserver(() => {
-        if (this._shownId) {
-          this._showTip(this._shownId);
+        const id = this._activeId();
+        if (id) {
+          this._showTip(id);
         }
       });
       if (this._content) {
@@ -234,9 +232,8 @@
       document.removeEventListener('pointerdown', this._onOutsidePress);
       document.removeEventListener('keydown', this._onEscape);
       this._clearHoverTimer();
-      this._focusedId = null;
-      this._hoveredBlockId = null;
-      this._tipHovered = false;
+      this._focused = null;
+      this._hovered = null;
       this._inView = false;
       this._syncTimer();
     }
@@ -318,7 +315,8 @@
       return this._translations?.[key] ?? key;
     }
 
-    _update() {
+    // force: render even when the entity state is unchanged (new config or translations)
+    _update(force = false) {
       if (!this._config || !this._hass || !this._translations) {
         return;
       }
@@ -334,7 +332,7 @@
       }
       // Price formatting follows the price sensor state, which may arrive after the registry entry
       const priceState = this._hass.states[this._priceEntityId];
-      if (stateObj && stateObj === this._stateObj && !entitiesChanged
+      if (!force && stateObj && stateObj === this._stateObj && !entitiesChanged
         && priceState === this._priceState && locale === this._localeData) {
         return;
       }
@@ -347,8 +345,7 @@
     _render(stateObj) {
       const focusedId = this.shadowRoot.activeElement?.dataset.blockId;
       this._clearHoverTimer();
-      this._hoveredBlockId = null;
-      this._tipHovered = false;
+      this._hovered = null;
 
       const style = document.createElement('style');
       style.textContent = STYLE;
@@ -358,46 +355,48 @@
       }
 
       const attrs = stateObj?.attributes;
-      if (!attrs || !Array.isArray(attrs.hdo_times_today_raw)) {
+      if (!attrs || !Array.isArray(attrs.hdo_intervals) || !attrs.date_today) {
         const message = document.createElement('p');
         message.className = 'message';
         message.textContent = stateObj
-          ? 'hdo_times_today_raw attribute not found'
+          ? 'hdo_intervals or date_today attribute not found'
           : `Entity ${this._config.entity} not found`;
         card.appendChild(message);
         this.shadowRoot.replaceChildren(style, card);
         return;
       }
 
-      const priceVt = parseFloat(attrs.price_vt || 7.0);
-      const priceNt = parseFloat(attrs.price_nt || 3.0);
+      // The integration always provides prices, colors and the unit
+      const priceVt = parseFloat(attrs.price_vt);
+      const priceNt = parseFloat(attrs.price_nt);
       this._colors = {
         vt: attrs.color_vt || 'var(--error-color, #ff5252)',
         nt: attrs.color_nt || 'var(--info-color, #2196f3)',
       };
-      this._priceUnit = attrs.price_unit || 'Kč/kWh';
+      this._priceUnit = attrs.price_unit;
       this._nextChange = attrs.next_change ? new Date(attrs.next_change) : null;
 
       const content = document.createElement('div');
       content.className = 'content';
       this._content = content;
       this._blocks = new Map();
-      this._shownId = null;
       this._resizeObserver?.disconnect();
       this._resizeObserver?.observe(content);
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const days = [{ key: 'today', date: today, slots: attrs.hdo_times_today_raw, isToday: true }];
+      // Days follow the date the backend computed the schedule for, not the browser's date,
+      // so a browser in another time zone or with a skewed clock still shows the matching data
+      const [year, month, dayOfMonth] = attrs.date_today.split('-').map(Number);
+      const today = new Date(year, month - 1, dayOfMonth);
+      const days = [{ key: 'today', date: today, isToday: true }];
       if ((this._config.show_days || 1) >= 2) {
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        days.push({ key: 'tomorrow', date: tomorrow, slots: attrs.hdo_times_tomorrow_raw || [], isToday: false });
+        days.push({ key: 'tomorrow', date: tomorrow, isToday: false });
       }
 
       this._nowMarker = null;
       for (const day of days) {
-        content.appendChild(this._renderDay(day, priceVt, priceNt));
+        content.appendChild(this._renderDay(day, attrs.hdo_intervals, priceVt, priceNt));
       }
       content.appendChild(this._renderLegend(priceVt, priceNt));
 
@@ -406,23 +405,23 @@
       this._tipEl.className = 'tip';
       this._tipEl.setAttribute('role', 'tooltip');
       this._tipEl.hidden = true;
+      // Moving the mouse from a block onto its tooltip keeps the tooltip open
       this._tipEl.addEventListener('pointerenter', (event) => {
         if (event.pointerType === 'mouse') {
-          this._tipHovered = true;
           this._clearHoverTimer();
+          this._hovered = this._activeId();
         }
       });
       this._tipEl.addEventListener('pointerleave', (event) => {
         if (event.pointerType === 'mouse') {
-          this._tipHovered = false;
-          this._scheduleTipRestore();
+          this._scheduleHoverEnd();
         }
       });
       content.appendChild(this._tipEl);
 
       card.appendChild(content);
       this.shadowRoot.replaceChildren(style, card);
-      this._focusedId = focusedId || null;
+      this._focused = focusedId && this._blocks.has(focusedId) ? focusedId : null;
       if (this._pinned && !this._blocks.has(this._pinned)) {
         this._pinned = null;
       }
@@ -441,7 +440,6 @@
       const tip = this._tipEl;
       tip.textContent = entry.text;
       tip.hidden = false;
-      this._shownId = id;
       // A stale left offset would shrink the tooltip while measuring it
       tip.style.left = '0px';
       const area = this._content.getBoundingClientRect();
@@ -453,22 +451,22 @@
       tip.style.top = `${above >= 0 ? above : anchor.bottom - area.top + 6}px`;
     }
 
-    // Restores the tooltip for an active pin, hover or focus, or hides it when none apply
+    // The most recent interaction wins: mouse hover, then keyboard focus, then a pinned block
+    // Sources whose block no longer exists after a re-render are skipped
+    _activeId() {
+      return [this._hovered, this._focused, this._pinned].find((id) => id && this._blocks.has(id)) ?? null;
+    }
+
+    // Shows the tooltip of the active block, or hides it when there is none
     _restoreTip() {
       for (const [id, entry] of this._blocks) {
         entry.el.classList.toggle('selected', id === this._pinned);
       }
-      if (this._pinned) {
-        this._showTip(this._pinned);
-      } else if (this._hoveredBlockId && this._blocks.has(this._hoveredBlockId)) {
-        this._showTip(this._hoveredBlockId);
-      } else if (this._focusedId && this._blocks.has(this._focusedId)) {
-        this._showTip(this._focusedId);
-      } else if (this._tipHovered && this._shownId && this._blocks.has(this._shownId)) {
-        this._showTip(this._shownId);
+      const id = this._activeId();
+      if (id) {
+        this._showTip(id);
       } else if (this._tipEl) {
         this._tipEl.hidden = true;
-        this._shownId = null;
       }
     }
 
@@ -477,15 +475,17 @@
       this._hoverTimer = null;
     }
 
-    _scheduleTipRestore() {
+    // Grace period so the mouse can move from a block onto its tooltip
+    _scheduleHoverEnd() {
       this._clearHoverTimer();
       this._hoverTimer = setTimeout(() => {
         this._hoverTimer = null;
+        this._hovered = null;
         this._restoreTip();
       }, 150);
     }
 
-    _renderDay(day, priceVt, priceNt) {
+    _renderDay(day, intervals, priceVt, priceNt) {
       const wrapper = document.createElement('div');
       wrapper.className = 'day';
 
@@ -504,7 +504,7 @@
         String(day.date.getMonth() + 1).padStart(2, '0'),
         String(day.date.getDate()).padStart(2, '0'),
       ].join('-');
-      this._buildBlocks(day.slots, priceVt, priceNt).forEach((block) => {
+      this._buildBlocks(intervals, dateKey, priceVt, priceNt).forEach((block) => {
         const id = `${dateKey}-${block.isVt ? 'vt' : 'nt'}-${Math.round(block.start * 60)}-${Math.round(block.end * 60)}`;
         bar.appendChild(this._renderBlock(block, id));
       });
@@ -553,17 +553,15 @@
       this._blocks.set(id, { el, text });
 
       // Tap/click/Enter pins the tooltip; touch has no hover, so pinning is the only way to see it there
-      const toggle = (keepVisible, blurOnUnpin = false) => {
+      // Unpinning keeps the tooltip while the block is hovered or focused; a tap also drops the focus so it hides
+      const toggle = (blurOnUnpin = false) => {
         const unpin = this._pinned === id;
         this._pinned = unpin ? null : id;
-        if (unpin && blurOnUnpin && this._focusedId === id) {
-          this._focusedId = null;
+        if (unpin && blurOnUnpin && this._focused === id) {
+          this._focused = null;
           el.blur();
         }
         this._restoreTip();
-        if (unpin && keepVisible) {
-          this._showTip(id);
-        }
       };
       let pointerType;
       el.addEventListener('pointerdown', (event) => {
@@ -572,67 +570,61 @@
       el.addEventListener('click', (event) => {
         const clickPointerType = event.pointerType || pointerType;
         pointerType = null;
-        toggle(clickPointerType === 'mouse', clickPointerType === 'touch');
+        toggle(clickPointerType === 'touch');
       });
       el.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
-          toggle(true);
+          toggle();
         }
       });
       // Mouse hover only: touch pointers also fire pointerenter, which would show a tip that never hides
       el.addEventListener('pointerenter', (event) => {
         if (event.pointerType === 'mouse') {
           this._clearHoverTimer();
-          this._hoveredBlockId = id;
-          this._showTip(id);
+          this._hovered = id;
+          this._restoreTip();
         }
       });
       el.addEventListener('pointerleave', (event) => {
         if (event.pointerType === 'mouse') {
-          if (this._hoveredBlockId === id) {
-            this._hoveredBlockId = null;
-          }
-          this._scheduleTipRestore();
+          this._scheduleHoverEnd();
         }
       });
       el.addEventListener('focus', () => {
-        this._focusedId = id;
-        this._showTip(id);
+        // Keyboard focus is newer than a hover that is still under the mouse
+        this._clearHoverTimer();
+        this._hovered = null;
+        this._focused = id;
+        this._restoreTip();
       });
       el.addEventListener('blur', () => {
-        if (this._focusedId === id) {
-          this._focusedId = null;
+        if (this._focused === id) {
+          this._focused = null;
         }
         this._restoreTip();
       });
       return el;
     }
 
-    // Merges the low-tariff slots and fills the gaps between them with high-tariff blocks
-    _buildBlocks(rawSlots, priceVt, priceNt) {
-      const toHour = (value) => {
-        const [h, m] = value.split(':').map(Number);
-        return h + m / 60;
+    // Clips the merged low-tariff intervals from the backend to one day and fills the gaps with high-tariff blocks.
+    // Interval times are HA wall-clock times ("YYYY-MM-DDTHH:MM:SS"), compared without the browser time zone.
+    _buildBlocks(intervals, dateKey, priceVt, priceNt) {
+      const toHours = (value) => {
+        const [date, time = '00:00:00'] = String(value).split('T');
+        const [year, month, day] = date.split('-').map(Number);
+        const [hour, minute, second = 0] = time.split(':').map(Number);
+        return Date.UTC(year, month - 1, day, hour, minute, second) / 3600000;
       };
-      const slots = rawSlots
-        .map((slot) => ({ start: toHour(slot.od), end: slot.do === '23:59:00' ? 24 : toHour(slot.do) }))
-        .filter((slot) => !isNaN(slot.start) && !isNaN(slot.end))
-        .sort((a, b) => a.start - b.start);
-
-      const merged = [];
-      for (const slot of slots) {
-        const last = merged[merged.length - 1];
-        if (last && slot.start <= last.end) {
-          last.end = Math.max(last.end, slot.end);
-        } else {
-          merged.push({ ...slot });
-        }
-      }
+      const dayStart = toHours(dateKey);
+      const slots = intervals
+        .map((interval) => ({ start: toHours(interval.od) - dayStart, end: toHours(interval.do) - dayStart }))
+        .filter((slot) => !isNaN(slot.start) && !isNaN(slot.end) && slot.end > 0 && slot.start < 24)
+        .map((slot) => ({ start: Math.max(0, slot.start), end: Math.min(24, slot.end) }));
 
       const blocks = [];
       let cursor = 0;
-      for (const slot of merged) {
+      for (const slot of slots) {
         if (cursor < slot.start) {
           blocks.push({ isVt: true, start: cursor, end: slot.start, price: priceVt });
         }

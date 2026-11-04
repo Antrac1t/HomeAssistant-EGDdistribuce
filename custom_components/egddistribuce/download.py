@@ -3,6 +3,7 @@ import logging
 import os
 import asyncio
 from pathlib import Path
+import tempfile
 from typing import Any
 
 import aiohttp
@@ -12,140 +13,133 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 _CACHE_LOCKS: dict[Path, asyncio.Lock] = {}
 
+# Formát souboru cache: {"version": CACHE_VERSION, "etag": str | None, "data": ...}
+CACHE_VERSION = 1
+# Limit jednoho požadavku; kratší než timeout volajícího, aby stihl fallback na cache
+REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=10)
 
-class Download:
-    """Sdílená utilita pro stahování JSON dat s cache fallbackem."""
 
-    @staticmethod
-    def _get_cache_dir(hass) -> Path:
-        """
-        Vrátí cestu .storage/<DOMAIN>/ kde se uloží stažené soubory.
-        """
-        return Path(hass.config.path(".storage", DOMAIN))
+def _cache_dir(hass) -> Path:
+    """Vrátí cestu .storage/<DOMAIN>/ kde se uloží stažené soubory."""
+    return Path(hass.config.path(".storage", DOMAIN))
 
-    @staticmethod
-    async def get_json(
-        hass,
-        session: aiohttp.ClientSession,
-        url: str,
-        file: str,
-        use_cache_on_error: bool = True,
-    ) -> Any:
-        """
-        Stáhne JSON z URL, uloží do cache/file.json a ETag do cache/file.json.etag.
-        Pokud server potvrdí, že se data nezměnila (304), použije se cache.
-        Při chybě vrátí poslední uložená data (pokud use_cache_on_error).
-        """
 
-        cache_dir = Download._get_cache_dir(hass)
-        cache_file = cache_dir / f"{file}.json"
-        etag_file = cache_dir / f"{file}.json.etag"
-        cache_lock = _CACHE_LOCKS.setdefault(cache_file, asyncio.Lock())
+async def get_json(
+    hass,
+    session: aiohttp.ClientSession,
+    url: str,
+    file: str,
+    use_cache_on_error: bool = True,
+) -> tuple[Any, bool]:
+    """Stáhne JSON z URL s cache fallbackem; vrací (data, z_cache).
 
-        def _atomic_write(path: Path, text: str) -> None:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            tmp = path.with_name(path.name + ".tmp")
-            tmp.write_text(text, encoding="utf-8")
-            os.replace(tmp, path)  # atomický zápis
+    Data se ukládají spolu s ETagem do .storage/<DOMAIN>/<file>.json.
+    Pokud server potvrdí, že se data nezměnila (304), použije se cache.
+    Při chybě vrátí poslední uložená data (pokud use_cache_on_error).
+    """
 
-        def _write_cache(data: Any, etag: str | None) -> None:
-            etag_file.unlink(missing_ok=True)
-            _atomic_write(
-                cache_file,
-                json.dumps(data, ensure_ascii=False, separators=(",", ":")),
+    cache_dir = _cache_dir(hass)
+    cache_file = cache_dir / f"{file}.json"
+    # ETag se dřív ukládal do samostatného souboru
+    legacy_etag_file = cache_dir / f"{file}.json.etag"
+    cache_lock = _CACHE_LOCKS.setdefault(cache_file, asyncio.Lock())
+
+    def _write_cache(data: Any, etag: str | None) -> None:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        payload = json.dumps(
+            {"version": CACHE_VERSION, "etag": etag, "data": data},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        # Unikátní dočasný soubor - souběžné zápisy si ho nepřepíšou
+        fd, tmp = tempfile.mkstemp(
+            dir=cache_dir, prefix=f"{cache_file.name}.", suffix=".tmp"
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as tmp_file:
+                tmp_file.write(payload)
+            os.replace(tmp, cache_file)  # atomický zápis
+        except BaseException:
+            Path(tmp).unlink(missing_ok=True)
+            raise
+        legacy_etag_file.unlink(missing_ok=True)
+
+    def _read_cache() -> tuple[Any, str | None]:
+        """Vrátí (data, etag); OSError/ValueError pokud cache chybí nebo je neplatná."""
+        content = json.loads(cache_file.read_text(encoding="utf-8"))
+        if isinstance(content, list):
+            # Starší formát: jen data, bez ETagu
+            return content, None
+        if (
+            not isinstance(content, dict)
+            or content.get("version") != CACHE_VERSION
+            or "data" not in content
+        ):
+            raise ValueError(f"Neznámý formát cache: {cache_file}")
+        return content["data"], content.get("etag")
+
+    not_modified = object()
+
+    async def _write_and_hold_lock(data: Any, etag: str | None) -> None:
+        """Zapsat cache; při zrušení počkat na executor, aby starší zápis nepřepsal novější."""
+        write = asyncio.ensure_future(
+            hass.async_add_executor_job(_write_cache, data, etag)
+        )
+        try:
+            await asyncio.shield(write)
+        except asyncio.CancelledError:
+            while not write.done():
+                try:
+                    await asyncio.wait({write})
+                except asyncio.CancelledError:
+                    continue
+            if not write.cancelled() and (err := write.exception()) is not None:
+                _LOGGER.warning("Nelze uložit cache %s: %s", cache_file, err)
+            raise
+
+    async def _request(headers: dict[str, str]):
+        async with session.get(url, headers=headers, timeout=REQUEST_TIMEOUT) as response:
+            if response.status == 304:
+                return not_modified, None
+            response.raise_for_status()
+            return await response.json(), response.headers.get("ETag")
+
+    async with cache_lock:
+        cached = None
+        try:
+            try:
+                cached = await hass.async_add_executor_job(_read_cache)
+            except (OSError, ValueError) as err:
+                _LOGGER.debug("Cache %s nelze použít: %s", cache_file, err)
+            etag = cached[1] if cached else None
+
+            data, new_etag = await _request(
+                {"If-None-Match": etag} if etag else {}
             )
-            if etag:
-                _atomic_write(etag_file, etag)
 
-        def _read_json(path: Path) -> Any:
-            return json.loads(path.read_text(encoding="utf-8"))
+            if data is not_modified:
+                if cached is None:
+                    raise UpdateFailed(f"Server vrátil 304 bez platné cache: {url}")
+                return cached[0], False
 
-        def _read_etag() -> str | None:
-            # ETag je platný jen společně s existující cache
-            if not cache_file.is_file():
-                return None
             try:
-                return etag_file.read_text(encoding="utf-8").strip() or None
-            except (OSError, UnicodeError):
-                return None
-
-        not_modified = object()
-
-        async def _write_cache_and_wait(data: Any, etag: str | None) -> None:
-            job = asyncio.ensure_future(
-                hass.async_add_executor_job(_write_cache, data, etag)
-            )
-            try:
-                await asyncio.shield(job)
-            except asyncio.CancelledError:
-                write_error_logged = False
-                while not job.done():
-                    try:
-                        await asyncio.shield(job)
-                    except asyncio.CancelledError:
-                        continue
-                    except Exception as err:
-                        _LOGGER.warning("Nelze uložit cache %s: %s", cache_file, err)
-                        write_error_logged = True
-                        break
-
-                if not write_error_logged and job.done() and not job.cancelled():
-                    try:
-                        job.result()
-                    except Exception as err:
-                        _LOGGER.warning("Nelze uložit cache %s: %s", cache_file, err)
-                raise
-
-        async def _request(headers: dict[str, str]):
-            async with session.get(url, headers=headers) as response:
-                if response.status == 304:
-                    return not_modified, None
-                response.raise_for_status()
-                return await response.json(), response.headers.get("ETag")
-
-        async with cache_lock:
-            try:
-                etag = await hass.async_add_executor_job(_read_etag)
-                data, new_etag = await _request(
-                    {"If-None-Match": etag} if etag else {}
+                await _write_and_hold_lock(data, new_etag)
+            except OSError as werr:
+                # Stažená data jsou platná, jen se nepodařilo uložit cache
+                _LOGGER.warning("Nelze uložit cache %s: %s", cache_file, werr)
+            else:
+                _LOGGER.debug(
+                    "Uloženo %s (ETag: %s)",
+                    cache_file,
+                    new_etag or "server neposlal",
                 )
+            return data, False
 
-                if data is not_modified:
-                    try:
-                        return await hass.async_add_executor_job(
-                            _read_json, cache_file
-                        ), False
-                    except (OSError, ValueError):
-                        # Cache zmizela nebo je poškozená - stáhnout znovu bez podmínky
-                        data, new_etag = await _request({})
-                        if data is not_modified:
-                            raise UpdateFailed(
-                                f"Server vrátil 304 bez platné cache: {url}"
-                            )
-
-                try:
-                    await _write_cache_and_wait(data, new_etag)
-                except OSError as werr:
-                    # Stažená data jsou platná, jen se nepodařilo uložit cache
-                    _LOGGER.warning("Nelze uložit cache %s: %s", cache_file, werr)
-                else:
-                    _LOGGER.debug(
-                        "Uloženo %s (ETag: %s)",
-                        cache_file,
-                        new_etag or "server neposlal",
-                    )
-                return data, False
-
-            except (aiohttp.ClientError, asyncio.TimeoutError, Exception) as err:
-                if not use_cache_on_error:
-                    raise UpdateFailed(f"Download selhal: {url}") from err
-                try:
-                    return await hass.async_add_executor_job(_read_json, cache_file), True
-                except FileNotFoundError:
-                    raise UpdateFailed(
-                        f"Download selhal a cache neexistuje: {url}"
-                    ) from err
-                except json.JSONDecodeError as jerr:
-                    raise UpdateFailed(
-                        f"Cache je poškozená: {cache_file}"
-                    ) from jerr
+        except Exception as err:
+            if not use_cache_on_error:
+                raise UpdateFailed(f"Download selhal: {url}") from err
+            if cached is None:
+                raise UpdateFailed(
+                    f"Download selhal a platná cache neexistuje: {url}"
+                ) from err
+            return cached[0], True

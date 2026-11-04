@@ -64,8 +64,9 @@ class EntityIdTests(unittest.IsolatedAsyncioTestCase):
         await dr.async_load(self.hass)
         self.registry = er.async_get(self.hass)
         self.entry = self.make_entry("entry-1", "D\u016fm")
+        self.hass.config.currency = "CZK"
         self.coordinator = coordinator_module.EGDDistribuceCoordinator(
-            self.hass, config_type="classic"
+            self.hass, self.entry
         )
         self.coordinator.update_interval = None
         self.coordinator.data = {}
@@ -132,7 +133,8 @@ class EntityIdTests(unittest.IsolatedAsyncioTestCase):
         state = self.hass.states.get(entity.entity_id)
         self.assertEqual(state.attributes.get("state_class"), "measurement")
         self.assertNotIn("device_class", state.attributes)
-        self.assertEqual(state.attributes.get("icon"), "mdi:currency-eur")
+        # Icons come from icons.json, not from the state
+        self.assertNotIn("icon", state.attributes)
         self.assertEqual(state.attributes.get("unit_of_measurement"), "Kč/kWh")
 
     async def test_legacy_and_custom_ids_are_not_renamed_or_duplicated(self):
