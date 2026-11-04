@@ -4,12 +4,13 @@ Run with: python -m unittest discover -s tests
 Requires the integration dependencies and Home Assistant.
 """
 
+from datetime import datetime
 import importlib
 from pathlib import Path
 import sys
 from types import ModuleType
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 
 PACKAGE = "_egddistribuce_attribute_tests"
@@ -20,6 +21,19 @@ package.__path__ = [
 sys.modules[PACKAGE] = package
 binary_sensor = importlib.import_module(f"{PACKAGE}.binary_sensor")
 sensor = importlib.import_module(f"{PACKAGE}.sensor")
+entity = importlib.import_module(f"{PACKAGE}.entity")
+
+
+class SlotFormatTests(unittest.TestCase):
+    def test_full_hours_keep_minutes(self):
+        slots = [
+            {"od": "10:00:00", "do": "12:30:00"},
+            {"od": "22:00:00", "do": "23:59:00"},
+        ]
+
+        self.assertEqual(entity.format_slots(slots), "10:00-12:30, 22:00-23:59")
+        self.assertEqual(entity.format_slot(slots[0], " - "), "10:00 - 12:30")
+        self.assertEqual(entity.format_slots([]), "Žádné")
 
 
 class CurrentPriceAttributeTests(unittest.TestCase):
@@ -32,6 +46,44 @@ class CurrentPriceAttributeTests(unittest.TestCase):
         )
 
         self.assertNotIn("hourly_prices", entity.extra_state_attributes)
+
+
+class NextChangeSensorTests(unittest.TestCase):
+    INTERVALS = [
+        {"od": "2026-11-04T10:00:00", "do": "2026-11-04T12:30:00"},
+        {"od": "2026-11-05T06:00:00", "do": "2026-11-05T08:00:00"},
+    ]
+
+    def entity_at(self, now):
+        entity = object.__new__(sensor.EGDDistribuceNextChangeSensor)
+        entity.coordinator = MagicMock(
+            data={
+                "hdo_intervals": self.INTERVALS,
+                "hdo_times_today": [{"od": "10:00:00", "do": "12:30:00"}],
+                "hdo_times_tomorrow": [{"od": "06:00:00", "do": "08:00:00"}],
+            }
+        )
+        patcher = patch.object(sensor.dt_util, "now", return_value=now)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return entity
+
+    def test_next_slot_today(self):
+        entity = self.entity_at(datetime(2026, 11, 4, 9, 0))
+        self.assertEqual(entity.native_value, "10:00 - 12:30")
+        self.assertFalse(entity.extra_state_attributes["tomorrow"])
+
+    def test_next_slot_tomorrow_has_no_text_prefix(self):
+        entity = self.entity_at(datetime(2026, 11, 4, 13, 0))
+        self.assertEqual(entity.native_value, "06:00 - 08:00")
+        attributes = entity.extra_state_attributes
+        self.assertTrue(attributes["tomorrow"])
+        self.assertEqual(attributes["all_times_tomorrow"], ["06:00 - 08:00"])
+
+    def test_no_planned_slot_is_unknown(self):
+        entity = self.entity_at(datetime(2026, 11, 5, 9, 0))
+        self.assertIsNone(entity.native_value)
+        self.assertFalse(entity.extra_state_attributes["tomorrow"])
 
 
 class TimesChangeTests(unittest.TestCase):

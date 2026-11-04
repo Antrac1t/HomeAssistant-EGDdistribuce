@@ -19,10 +19,8 @@ def suggest_entity_id(platform: str, key: str, entry: ConfigEntry) -> str:
 
 
 def format_slot(slot: dict, separator: str = "-") -> str:
-    """Format an HDO slot {'od', 'do'} for display."""
-    start = slot.get("od", "").replace(":00", "")
-    end = slot.get("do", "").replace(":00", "")
-    return f"{start}{separator}{end}"
+    """Format an HDO slot {'od': 'HH:MM:SS', 'do': 'HH:MM:SS'} as HH:MM."""
+    return f"{slot.get('od', '')[:5]}{separator}{slot.get('do', '')[:5]}"
 
 
 def format_slots(slots: list) -> str:

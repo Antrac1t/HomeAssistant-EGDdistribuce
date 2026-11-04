@@ -25,7 +25,6 @@ class EGDDistribuceRefreshButton(ButtonEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "refresh_api"
-    _attr_icon = "mdi:cloud-refresh"
 
     def __init__(
         self,

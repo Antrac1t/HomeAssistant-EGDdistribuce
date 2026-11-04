@@ -133,7 +133,8 @@ class EntityIdTests(unittest.IsolatedAsyncioTestCase):
         state = self.hass.states.get(entity.entity_id)
         self.assertEqual(state.attributes.get("state_class"), "measurement")
         self.assertNotIn("device_class", state.attributes)
-        self.assertEqual(state.attributes.get("icon"), "mdi:currency-eur")
+        # Icons come from icons.json, not from the state
+        self.assertNotIn("icon", state.attributes)
         self.assertEqual(state.attributes.get("unit_of_measurement"), "Kč/kWh")
 
     async def test_legacy_and_custom_ids_are_not_renamed_or_duplicated(self):

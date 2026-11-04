@@ -59,11 +59,6 @@ class EGDDistribuceBinarySensor(EGDBaseEntity, BinarySensorEntity):
         return self.coordinator.data.get("is_active", False)
 
     @property
-    def icon(self) -> str:
-        """Return the icon to use in the frontend."""
-        return "mdi:transmission-tower" if self.is_on else "mdi:transmission-tower-off"
-
-    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         if self.coordinator.data is None:
@@ -103,7 +98,6 @@ class EGDDistribuceTimesChangeBinarySensor(EGDBaseEntity, BinarySensorEntity):
 
     _platform = "binary_sensor"
     _attr_translation_key = "hdo_times_change"
-    _attr_icon = "mdi:calendar-clock"
 
     @property
     def is_on(self) -> bool:

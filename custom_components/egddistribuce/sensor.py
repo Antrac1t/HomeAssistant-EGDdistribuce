@@ -77,11 +77,6 @@ class EGDDistribuceCurrentPriceSensor(EGDBaseEntity, SensorEntity):
         return self.coordinator.data.get("current_price")
 
     @property
-    def icon(self) -> str:
-        """Return the icon to use in the frontend."""
-        return "mdi:currency-eur"
-
-    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         if self.coordinator.data is None:
@@ -101,7 +96,6 @@ class EGDDistribuceNextChangeTimeSensor(EGDBaseEntity, SensorEntity):
     _platform = "sensor"
     _attr_translation_key = "next_hdo_change"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
-    _attr_icon = "mdi:clock-end"
 
     @property
     def native_value(self) -> datetime | None:
@@ -129,46 +123,39 @@ class EGDDistribuceNextChangeSensor(EGDBaseEntity, SensorEntity):
 
     _platform = "sensor"
     _attr_translation_key = "next_change"
-    _attr_icon = "mdi:clock-time-four-outline"
 
-    @property
-    def native_value(self) -> str | None:
-        """Return the next HDO time slot."""
-        if self.coordinator.data is None:
-            return None
-        
-        from datetime import datetime
-        
+    def _next_slot(self) -> tuple[datetime, datetime] | None:
+        """Return the next HDO interval that has not started yet."""
         now = dt_util.now().replace(tzinfo=None)
         for interval in self.coordinator.data.get("hdo_intervals", []):
             start = datetime.fromisoformat(interval["od"])
-            if start <= now:
-                continue
-            end = datetime.fromisoformat(interval["do"])
-            text = f"{start:%H:%M} - {end:%H:%M}"
-            if start.date() > now.date():
-                return f"Zítra: {text}"
-            return text
-        
-        return "Žádný plánovaný"
+            if start > now:
+                return start, datetime.fromisoformat(interval["do"])
+        return None
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the next HDO time slot as "HH:MM - HH:MM", or None if there is none."""
+        if self.coordinator.data is None or (slot := self._next_slot()) is None:
+            return None
+        start, end = slot
+        return f"{start:%H:%M} - {end:%H:%M}"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         if self.coordinator.data is None:
             return {}
-        
+
         hdo_times_today = self.coordinator.data.get("hdo_times_today", [])
         hdo_times_tomorrow = self.coordinator.data.get("hdo_times_tomorrow", [])
-        
-        all_times_today = [format_slot(slot, " - ") for slot in hdo_times_today]
-        all_times_tomorrow = [
-            f"Zítra {format_slot(slot, ' - ')}" for slot in hdo_times_tomorrow
-        ]
-        
+        slot = self._next_slot()
+
         return {
-            "all_times_today": all_times_today,
-            "all_times_tomorrow": all_times_tomorrow,
+            # The next slot starts tomorrow (the state itself has no date)
+            "tomorrow": bool(slot and slot[0].date() > dt_util.now().date()),
+            "all_times_today": [format_slot(s, " - ") for s in hdo_times_today],
+            "all_times_tomorrow": [format_slot(s, " - ") for s in hdo_times_tomorrow],
             "total_slots_today": len(hdo_times_today),
             "total_slots_tomorrow": len(hdo_times_tomorrow),
         }
