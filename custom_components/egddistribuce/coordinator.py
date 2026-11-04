@@ -12,7 +12,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import async_call_later, async_track_point_in_time
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
-from .download import Download
+from .download import get_json
 from .schedules import default_schedule, schedule_labels, select_schedule
 
 try:
@@ -207,7 +207,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
 
     async def _fetch_hdo_data(self, session: aiohttp.ClientSession) -> tuple[list, bool]:
         """Stáhnout HDO data z API. Vrací (data, z_cache)."""
-        return await Download.get_json(
+        return await get_json(
             hass=self.hass,
             session=session,
             url=API_HDO_URL,
@@ -216,7 +216,7 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
 
     async def _fetch_region(self, session: aiohttp.ClientSession) -> tuple[str, bool]:
         """Zjistit region z PSČ. Vrací (region, z_cache)."""
-        data, cached = await Download.get_json(
+        data, cached = await get_json(
             hass=self.hass,
             session=session,
             url=API_REGION_URL,

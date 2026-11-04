@@ -51,7 +51,7 @@ class SmartFlowTests(unittest.IsolatedAsyncioTestCase):
 
     def patch_download(self, **kwargs):
         return patch.object(
-            config_flow.Download, "get_json", AsyncMock(**kwargs)
+            config_flow, "get_json", AsyncMock(**kwargs)
         ), patch.object(config_flow, "async_get_clientsession", lambda hass: None)
 
     async def test_download_failure_aborts(self):

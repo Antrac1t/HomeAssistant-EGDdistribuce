@@ -63,7 +63,7 @@ class UpdateCachedFlagTests(unittest.IsolatedAsyncioTestCase):
         session.__aenter__ = AsyncMock(return_value=session)
         session.__aexit__ = AsyncMock(return_value=False)
         with patch.object(
-            coordinator_module.Download, "get_json", side_effect=get_json
+            coordinator_module, "get_json", side_effect=get_json
         ), patch.object(
             coordinator_module.aiohttp, "ClientSession", return_value=session
         ):

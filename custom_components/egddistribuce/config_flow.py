@@ -21,7 +21,7 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 
-from .download import Download
+from .download import get_json
 from .schedules import default_schedule, match_code, schedule_labels, smart_codes
 from .const import (
     DOMAIN,
@@ -247,7 +247,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if self._hdo_data is None:
             try:
                 async with asyncio.timeout(30):
-                    self._hdo_data, _ = await Download.get_json(
+                    self._hdo_data, _ = await get_json(
                         hass=self.hass,
                         session=async_get_clientsession(self.hass),
                         url=API_HDO_URL,
