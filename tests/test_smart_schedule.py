@@ -132,6 +132,18 @@ class SmartScheduleTests(unittest.TestCase):
         )
         self.assertEqual(data["HDO_HOURLY"][datetime(2026, 10, 23, 6, 30)], 2.5)
 
+    def test_hourly_prices_cover_slot_across_midnight(self):
+        overnight = record("C45d,D45d-relé1-PV", [("22:00:00", "02:00:00")], [("22:00:00", "02:00:00")])
+        with patch.object(coordinator_module.dt_util, "DEFAULT_TIME_ZONE", timezone.utc):
+            data = self.coordinator._parse_times([overnight], datetime(2026, 10, 23, 12))
+
+        hourly = data["HDO_HOURLY"]
+        self.assertEqual(hourly[datetime(2026, 10, 23, 1, 0)], 1.5)
+        self.assertEqual(hourly[datetime(2026, 10, 23, 2, 0)], 2.5)
+        self.assertEqual(hourly[datetime(2026, 10, 23, 12, 0)], 2.5)
+        self.assertEqual(hourly[datetime(2026, 10, 23, 23, 0)], 1.5)
+        self.assertEqual(hourly[datetime(2026, 10, 24, 1, 45)], 1.5)
+
     def test_all_seasonal_pv_records_are_retained(self):
         winter_pv = deepcopy(self.pv)
         winter_tuv = deepcopy(self.tuv)

@@ -171,18 +171,22 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             async with asyncio.timeout(30):
                 async with aiohttp.ClientSession() as session:
                     # Krok 1: Stáhnout HDO data
-                    hdo_data = await self._fetch_hdo_data(session)
+                    hdo_data, cached = await self._fetch_hdo_data(session)
                     
                     # Krok 2: Najít relevantní záznamy podle typu konfigurace
-                    if self.config_type == CONFIG_TYPE_CLASSIC:
-                        filtered = await self._filter_classic(session, hdo_data)
-                    elif self.config_type == CONFIG_TYPE_HDO_CODES:
-                        filtered = await self._filter_hdo_codes(session, hdo_data)
-                    else:  # CONFIG_TYPE_SMART
+                    if self.config_type == CONFIG_TYPE_SMART:
                         filtered = self._filter_smart(hdo_data)
+                    else:
+                        region, region_cached = await self._fetch_region(session)
+                        cached = cached or region_cached
+                        if self.config_type == CONFIG_TYPE_CLASSIC:
+                            filtered = self._filter_classic(hdo_data, region)
+                        else:  # CONFIG_TYPE_HDO_CODES
+                            filtered = self._filter_hdo_codes(hdo_data, region)
                     
                     self.cached_filtered = filtered
-                    if not self.last_update_cached:
+                    self.last_update_cached = cached
+                    if not cached:
                         self.last_successful_update = now
                 
                 # Krok 3: Zparsovat časy z filtrovaných záznamů
@@ -201,37 +205,33 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         self._schedule_boundary(data)
         return data
 
-    async def _fetch_hdo_data(self, session: aiohttp.ClientSession) -> list:
-        """Stáhnout HDO data z API."""
-        data, self.last_update_cached = await Download.get_json(
+    async def _fetch_hdo_data(self, session: aiohttp.ClientSession) -> tuple[list, bool]:
+        """Stáhnout HDO data z API. Vrací (data, z_cache)."""
+        return await Download.get_json(
             hass=self.hass,
             session=session,
             url=API_HDO_URL,
             file="hdo",   # uloží se do cache/hdo.json
         )
-        return data
 
-    async def _fetch_region(self, session: aiohttp.ClientSession) -> str:
-        """Zjistit region z PSČ."""
-        data, self.last_update_cached = await Download.get_json(
+    async def _fetch_region(self, session: aiohttp.ClientSession) -> tuple[str, bool]:
+        """Zjistit region z PSČ. Vrací (region, z_cache)."""
+        data, cached = await Download.get_json(
             hass=self.hass,
             session=session,
             url=API_REGION_URL,
             file="region",   # uloží se do cache/region.json
         )
 
-            
         region_records = [x for x in data if x.get('PSC') == self.psc]
         if not region_records:
             raise UpdateFailed(f"Region not found for PSČ: {self.psc}")
         
         # Vrátit první unikátní region
-        return region_records[0]['Region']
+        return region_records[0]['Region'], cached
 
-    async def _filter_classic(self, session: aiohttp.ClientSession, hdo_data: list) -> list:
+    def _filter_classic(self, hdo_data: list, region: str) -> list:
         """VARIANTA 1: Classic - PSČ + A + B + DP"""
-        region = await self._fetch_region(session)
-        
         _LOGGER.debug(f"Classic filter: region={region}, A={self.code_a}, B={self.code_b}, DP={self.code_dp}")
         
         filtered = [
@@ -245,9 +245,8 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         _LOGGER.debug(f"Classic filter: found {len(filtered)} records")
         return filtered
 
-    async def _filter_hdo_codes(self, session: aiohttp.ClientSession, hdo_data: list) -> list:
+    def _filter_hdo_codes(self, hdo_data: list, region: str) -> list:
         """VARIANTA 2: HDO Codes - PSČ + seznam kódů (405,406,410)"""
-        region = await self._fetch_region(session)
         codes = [c.strip() for c in self.hdo_code.split(',')]
         
         _LOGGER.debug(f"HDO Codes filter: region={region}, codes={codes}")
@@ -406,10 +405,6 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         # Získat region z prvního záznamu (pokud existuje)
         region = filtered_records[0].get('region', 'N/A') if filtered_records else 'N/A'
         
-        # Pro TOU (Time of Use) tariffy jsou časy INVERTOVANÉ
-        # API časy znamenají kdy JE nízký tarif (NT), ne HDO signál
-        is_tou = region == 'TOU'
-        
         # Absolutní intervaly sloučené přes půlnoc (např. 20:00-23:59 + 00:00-04:00 = 20:00-04:00)
         intervals = self._build_intervals([
             (date_yesterday, hdo_times_yesterday),
@@ -422,24 +417,16 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         current_interval = next((i for i in intervals if i[0] <= now < i[1]), None)
         is_in_time_slot = current_interval is not None
         
-        # Určit cenu a stav podle typu
-        if is_tou:
-            # TOU: časy = kdy JE NT
-            current_price = self.price_nt if is_in_time_slot else self.price_vt
-            # Status: Zapnuto = NT perioda (levná elektřina)
-            is_active = is_in_time_slot
-        else:
-            # Klasické HDO: časy = HDO signál = NT
-            current_price = self.price_nt if is_in_time_slot else self.price_vt
-            # Status: Zapnuto = HDO signál aktivní
-            is_active = is_in_time_slot
+        # Časy z API značí NT: u klasického HDO signál, u TOU levnou periodu
+        current_price = self.price_nt if is_in_time_slot else self.price_vt
+        is_active = is_in_time_slot
         
         next_change = self._get_next_change(now, intervals, current_interval)
         # Naive HA-local time -> tz-aware (the timestamp sensor requires a timezone)
         next_change = next_change.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE) if next_change else None
         
-        # Vygenerovat HDO_HOURLY pro dalších 24 hodin
-        HDO_HOURLY = self._generate_hdo_hourly(hdo_times_today, hdo_times_tomorrow, now, is_tou)
+        # Ceny po 15 minutách pro dnešek a zítřek
+        HDO_HOURLY = self._generate_hdo_hourly(intervals, now)
         
         return {
             "is_active": is_active,
@@ -462,31 +449,6 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
         if holiday_as_sunday and date in self.cz_holidays:
             return day_code == 7
         return date.isoweekday() == day_code
-
-    def _is_time_active(self, current_time: time, hdo_times: list) -> bool:
-        """Kontrola zda je aktuální čas v HDO slotu."""
-        for slot in hdo_times:
-            try:
-                start = datetime.strptime(slot['od'], "%H:%M:%S").time()
-                end = datetime.strptime(slot['do'], "%H:%M:%S").time()
-                
-                # Speciální případ: 23:59:00 znamená konec dne (23:59:59)
-                if slot['do'] == '23:59:00':
-                    # Kontrola: start <= current_time <= 23:59:59
-                    end_of_day = time(23, 59, 59)
-                    if start <= current_time <= end_of_day:
-                        return True
-                else:
-                    # Fix pro ostatní časy končící :59:00 (měly by být :00:00 další hodiny)
-                    if slot['do'].endswith(':59:00'):
-                        end = (datetime.combine(datetime.today(), end) + timedelta(minutes=1)).time()
-                    
-                    if start <= current_time < end:
-                        return True
-            except ValueError:
-                continue
-        
-        return False
 
     def _build_intervals(self, days: list) -> list:
         """Převést sloty (datum, [{'od','do'}]) na seřazené, sloučené datetime intervaly."""
@@ -520,48 +482,13 @@ class EGDDistribuceCoordinator(DataUpdateCoordinator):
             return current_interval[1]
         return next((start for start, _ in intervals if start > now), None)
 
-    def _generate_hdo_hourly(self, hdo_times_today: list, hdo_times_tomorrow: list, now: datetime, is_tou: bool = False) -> dict:
-        """Vygenerovat HDO_HOURLY atribut - 15minutové intervaly na 48 hodin (dnes + zítra).
-        
-        Args:
-            is_tou: Pokud True, časy jsou invertované (značí kdy JE NT, ne HDO signál)
-        """
+    def _generate_hdo_hourly(self, intervals: list, now: datetime) -> dict:
+        """Ceny po 15 minutách na 48 hodin (dnes + zítra) ze sloučených intervalů."""
+        start = datetime.combine(now.date(), time(0))
         result = {}
-        date_today = now.date()
-        date_tomorrow = date_today + timedelta(days=1)
-        
-        # Generovat dnes (96 intervalů = 24 hodin * 4)
-        for i in range(96):
-            timestamp = datetime.combine(date_today, time(hour=0)) + timedelta(minutes=i * 15)
-            time_check = timestamp.time()
-            
-            is_in_slot = self._is_time_active(time_check, hdo_times_today)
-            
-            # Pro TOU: ve slotu = NT, mimo slot = VT
-            # Pro klasické HDO: ve slotu = NT (HDO aktivní)
-            if is_tou:
-                price = self.price_nt if is_in_slot else self.price_vt
-            else:
-                price = self.price_nt if is_in_slot else self.price_vt
-            
-            # Použít datetime objekt jako klíč (bez timezone) - kompatibilní se starou verzí
-            result[timestamp] = float(price)
-        
-        # Generovat zítra (96 intervalů = 24 hodin * 4)
-        for i in range(96):
-            timestamp = datetime.combine(date_tomorrow, time(hour=0)) + timedelta(minutes=i * 15)
-            time_check = timestamp.time()
-            
-            is_in_slot = self._is_time_active(time_check, hdo_times_tomorrow)
-            
-            # Pro TOU: ve slotu = NT, mimo slot = VT
-            # Pro klasické HDO: ve slotu = NT (HDO aktivní)
-            if is_tou:
-                price = self.price_nt if is_in_slot else self.price_vt
-            else:
-                price = self.price_nt if is_in_slot else self.price_vt
-            
-            # Použít datetime objekt jako klíč (bez timezone) - kompatibilní se starou verzí
-            result[timestamp] = float(price)
-        
+        for i in range(2 * 96):
+            # Klíč je naivní datetime - kompatibilní se starou verzí
+            timestamp = start + timedelta(minutes=i * 15)
+            in_slot = any(begin <= timestamp < end for begin, end in intervals)
+            result[timestamp] = float(self.price_nt if in_slot else self.price_vt)
         return result

@@ -105,7 +105,6 @@ class EGDDistribuceCurrentPriceSensor(EGDBaseEntity, SensorEntity):
             "tariff": "Nízký (NT)" if is_active else "Vysoký (VT)",
             "price_nt": self.coordinator.price_nt,
             "price_vt": self.coordinator.price_vt,
-            "hourly_prices": self.coordinator.data.get("hourly_prices", {}),
         }
 
 
