@@ -64,8 +64,9 @@ class EntityIdTests(unittest.IsolatedAsyncioTestCase):
         await dr.async_load(self.hass)
         self.registry = er.async_get(self.hass)
         self.entry = self.make_entry("entry-1", "D\u016fm")
+        self.hass.config.currency = "CZK"
         self.coordinator = coordinator_module.EGDDistribuceCoordinator(
-            self.hass, config_type="classic"
+            self.hass, self.entry
         )
         self.coordinator.update_interval = None
         self.coordinator.data = {}

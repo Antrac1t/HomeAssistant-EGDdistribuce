@@ -2,6 +2,10 @@
 
 DOMAIN = "egddistribuce"
 
+# EGD API
+API_REGION_URL = "https://hdo.distribuce24.cz/region"
+API_HDO_URL = "https://hdo.distribuce24.cz/casy"
+
 # Configuration keys
 CONF_PSC = "psc"
 CONF_CODE_A = "code_a"
@@ -23,8 +27,5 @@ CONFIG_TYPE_SMART = "smart"  # Smart meter
 # Default values
 DEFAULT_PRICE_NT = 1.0
 DEFAULT_PRICE_VT = 2.0
-DEFAULT_NAME = "EGD HDO"
 DEFAULT_COLOR_VT = "#ff5252"  # Red for high tariff
 DEFAULT_COLOR_NT = "#2196f3"  # Blue for low tariff
-# Update interval (legacy - for backward compatibility)
-UPDATE_INTERVAL = 120  # seconds

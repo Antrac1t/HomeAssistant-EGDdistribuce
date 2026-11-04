@@ -27,7 +27,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up EGD Distribuce binary sensor from a config entry."""
-    coordinator: EGDDistribuceCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: EGDDistribuceCoordinator = entry.runtime_data
 
     async_add_entities([
         EGDDistribuceBinarySensor(coordinator, entry),

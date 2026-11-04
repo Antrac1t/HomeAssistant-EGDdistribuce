@@ -8,9 +8,9 @@ from datetime import datetime
 import importlib
 from pathlib import Path
 import sys
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 import unittest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 
 PACKAGE = "_egddistribuce_update_tests"
@@ -46,26 +46,24 @@ class UpdateCachedFlagTests(unittest.IsolatedAsyncioTestCase):
         coordinator._parse_times = MagicMock(return_value={})
         coordinator._sync_schedule_issue = MagicMock()
         coordinator._schedule_boundary = MagicMock()
-        coordinator._schedule_retry = MagicMock()
-        coordinator._cancel_retry = MagicMock()
+        coordinator.update_interval = coordinator_module.API_UPDATE_INTERVAL
         self.coordinator = coordinator
 
-    async def update(self, hdo_cached, region_cached):
+    async def update(self, hdo_cached, region_cached, error=None):
         results = {
             "hdo": (HDO_DATA, hdo_cached),
             "region": (REGION_DATA, region_cached),
         }
 
         async def get_json(**kwargs):
+            if error:
+                raise error
             return results[kwargs["file"]]
 
-        session = MagicMock()
-        session.__aenter__ = AsyncMock(return_value=session)
-        session.__aexit__ = AsyncMock(return_value=False)
         with patch.object(
             coordinator_module, "get_json", side_effect=get_json
         ), patch.object(
-            coordinator_module.aiohttp, "ClientSession", return_value=session
+            coordinator_module, "async_get_clientsession", return_value=MagicMock()
         ):
             await self.coordinator._async_update_data()
 
@@ -74,8 +72,9 @@ class UpdateCachedFlagTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(self.coordinator.last_update_cached)
         self.assertIsNone(self.coordinator.last_successful_update)
-        self.coordinator._schedule_retry.assert_called_once()
-        self.coordinator._cancel_retry.assert_not_called()
+        self.assertEqual(
+            self.coordinator.update_interval, coordinator_module.RETRY_DELAY
+        )
 
     async def test_cached_region_marks_update_as_cached(self):
         await self.update(hdo_cached=False, region_cached=True)
@@ -88,8 +87,80 @@ class UpdateCachedFlagTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertFalse(self.coordinator.last_update_cached)
         self.assertEqual(self.coordinator.last_successful_update, NOW)
-        self.coordinator._cancel_retry.assert_called_once()
         self.assertEqual(self.coordinator.cached_filtered, HDO_DATA)
+
+    async def test_online_update_restores_normal_interval(self):
+        self.coordinator.update_interval = coordinator_module.RETRY_DELAY
+
+        await self.update(hdo_cached=False, region_cached=False)
+
+        self.assertEqual(
+            self.coordinator.update_interval, coordinator_module.API_UPDATE_INTERVAL
+        )
+
+    async def test_failed_update_retries_sooner(self):
+        with self.assertRaises(coordinator_module.UpdateFailed):
+            await self.update(False, False, error=RuntimeError("down"))
+
+        self.assertEqual(
+            self.coordinator.update_interval, coordinator_module.RETRY_DELAY
+        )
+
+
+class CoordinatorConfigTests(unittest.TestCase):
+    def make(self, data, options=None, currency="CZK"):
+        hass = MagicMock()
+        hass.config.currency = currency
+        entry = SimpleNamespace(entry_id="entry-1", data=data, options=options or {})
+        return EGDDistribuceCoordinator(hass, entry)
+
+    def test_options_override_initial_prices_and_colors(self):
+        coordinator = self.make(
+            {
+                const.CONF_CONFIG_TYPE: const.CONFIG_TYPE_HDO_CODES,
+                const.CONF_PSC: "58851",
+                const.CONF_HDO_CODE: "405,406",
+                const.CONF_PRICE_NT: 1.1,
+                const.CONF_PRICE_VT: 2.2,
+                const.CONF_COLOR_VT: "#111111",
+            },
+            {const.CONF_PRICE_NT: 3, const.CONF_COLOR_VT: "#222222"},
+        )
+
+        self.assertEqual(coordinator.config_type, const.CONFIG_TYPE_HDO_CODES)
+        self.assertEqual(coordinator.psc, "58851")
+        self.assertEqual(coordinator.hdo_code, "405,406")
+        self.assertEqual(coordinator.price_nt, 3.0)
+        self.assertEqual(coordinator.price_vt, 2.2)
+        self.assertEqual(coordinator.color_vt, "#222222")
+        self.assertEqual(coordinator.color_nt, const.DEFAULT_COLOR_NT)
+        self.assertEqual(coordinator.entry_id, "entry-1")
+
+    def test_defaults_and_price_unit(self):
+        coordinator = self.make({}, currency="EUR")
+
+        self.assertEqual(coordinator.config_type, const.CONFIG_TYPE_CLASSIC)
+        self.assertEqual(coordinator.price_nt, const.DEFAULT_PRICE_NT)
+        self.assertEqual(coordinator.price_vt, const.DEFAULT_PRICE_VT)
+        self.assertEqual(coordinator.price_unit, "EUR/kWh")
+        self.assertEqual(self.make({}).price_unit, "Kč/kWh")
+
+
+class FilterTests(unittest.TestCase):
+    def test_hdo_codes_filter_matches_region_and_any_listed_code(self):
+        coordinator = object.__new__(EGDDistribuceCoordinator)
+        coordinator.hdo_code = "405, 410"
+        records = [
+            {"region": "ZAPAD", "kodHdo_A": "405"},
+            {"region": "ZAPAD", "kodHdo_A": "406"},
+            {"region": "VYCHOD", "kodHdo_A": "410"},
+            {"region": "ZAPAD", "kodHdo_A": "410"},
+        ]
+
+        self.assertEqual(
+            coordinator._filter_hdo_codes(records, "ZAPAD"),
+            [records[0], records[3]],
+        )
 
 
 if __name__ == "__main__":

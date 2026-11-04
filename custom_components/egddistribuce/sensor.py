@@ -31,7 +31,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up EGD Distribuce sensors from a config entry."""
-    coordinator: EGDDistribuceCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: EGDDistribuceCoordinator = entry.runtime_data
 
     # Remove the retired "Time Until Change" entity so it does not linger as unavailable
     registry = er.async_get(hass)

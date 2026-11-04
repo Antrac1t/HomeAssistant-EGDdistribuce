@@ -25,6 +25,8 @@ from .download import get_json
 from .schedules import default_schedule, match_code, schedule_labels, smart_codes
 from .const import (
     DOMAIN,
+    API_HDO_URL,
+    API_REGION_URL,
     CONF_PSC,
     CONF_CODE_A,
     CONF_CODE_B,
@@ -47,8 +49,6 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-API_REGION_URL = "https://hdo.distribuce24.cz/region"
-API_HDO_URL = "https://hdo.distribuce24.cz/casy"
 
 HEX_COLOR_RE = re.compile(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})")
 
@@ -77,16 +77,16 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     psc = data[CONF_PSC]
 
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(API_REGION_URL, timeout=aiohttp.ClientTimeout(total=10)) as response:
-                if response.status != 200:
-                    raise CannotConnect
+        session = async_get_clientsession(hass)
+        async with session.get(API_REGION_URL, timeout=aiohttp.ClientTimeout(total=10)) as response:
+            if response.status != 200:
+                raise CannotConnect
 
-                regions_data = await response.json()
-                matching_regions = [x for x in regions_data if x.get("PSC") == psc]
+            regions_data = await response.json()
+            matching_regions = [x for x in regions_data if x.get("PSC") == psc]
 
-                if not matching_regions:
-                    raise InvalidPSC
+            if not matching_regions:
+                raise InvalidPSC
 
     except (CannotConnect, InvalidPSC):
         raise
@@ -381,18 +381,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
 
-        current_price_vt = self._config_entry.options.get(
-            CONF_PRICE_VT, self._config_entry.data.get(CONF_PRICE_VT, DEFAULT_PRICE_VT)
-        )
-        current_price_nt = self._config_entry.options.get(
-            CONF_PRICE_NT, self._config_entry.data.get(CONF_PRICE_NT, DEFAULT_PRICE_NT)
-        )
-        current_color_vt = self._config_entry.options.get(
-            CONF_COLOR_VT, self._config_entry.data.get(CONF_COLOR_VT, DEFAULT_COLOR_VT)
-        )
-        current_color_nt = self._config_entry.options.get(
-            CONF_COLOR_NT, self._config_entry.data.get(CONF_COLOR_NT, DEFAULT_COLOR_NT)
-        )
+        current = {**self._config_entry.data, **self._config_entry.options}
+        current_price_vt = current.get(CONF_PRICE_VT, DEFAULT_PRICE_VT)
+        current_price_nt = current.get(CONF_PRICE_NT, DEFAULT_PRICE_NT)
+        current_color_vt = current.get(CONF_COLOR_VT, DEFAULT_COLOR_VT)
+        current_color_nt = current.get(CONF_COLOR_NT, DEFAULT_COLOR_NT)
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
