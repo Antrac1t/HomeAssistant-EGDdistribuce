@@ -5,6 +5,7 @@
   const CARD_VERSION = '1.1.1';
   const TRANSLATIONS_URL = '/egddistribuce_card/hdo_card_translations';
   const DEFAULT_LANGUAGE = 'en';
+  const LAST_MINUTE_OF_DAY = 24 * 60 - 1;
   const translationCache = new Map();
 
   async function fetchTranslations(language) {
@@ -528,7 +529,7 @@
       axis.className = 'axis';
       for (const hour of [0, 6, 12, 18, 24]) {
         const label = document.createElement('span');
-        label.textContent = `${hour}:00`;
+        label.textContent = this._formatHour(hour);
         axis.appendChild(label);
       }
       wrapper.appendChild(axis);
@@ -704,8 +705,10 @@
     }
 
     _formatHour(hour) {
-      const h = Math.floor(hour);
-      const m = Math.round((hour - h) * 60);
+      // Keep the midnight boundary for geometry, but display the last minute of this day.
+      const minutes = Math.min(LAST_MINUTE_OF_DAY, Math.round(hour * 60));
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
       return `${h}:${String(m).padStart(2, '0')}`;
     }
 
