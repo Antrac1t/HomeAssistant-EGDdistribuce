@@ -1,4 +1,4 @@
-> ![English](https://flagcdn.com/16x12/gb.png) **English description can be [found here](./README.en.md).**
+> 🇬🇧 **English description can be [found here](./README.en.md).**
 
 # EGD Distribuce - Home Assistant Sensor
 

@@ -1,4 +1,4 @@
-> ![Čeština](https://flagcdn.com/16x12/cz.png) **Český popis [najdete zde](./README.md).**
+> 🇨🇿 **Český popis [najdete zde](./README.md).**
 
 # EGD Distribuce - Home Assistant Sensor
 
